@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiPlus, FiTrash2, FiMenu, FiX, FiActivity } from 'react-icons/fi'
+import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiPlus, FiTrash2, FiMenu, FiX, FiActivity, FiPause, FiPlay } from 'react-icons/fi'
 import { IoMdPeople, IoMdDocument, IoMdHeart } from 'react-icons/io'
 import { MdWarning } from 'react-icons/md'
+import { BsCircleFill, BsFileText } from 'react-icons/bs'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -328,12 +329,12 @@ function Dashboard() {
               >
                 {isPaused ? (
                   <>
-                    <span style={{ fontSize: '16px' }}>▶️</span>
+                    <FiPlay size={16} />
                     Resume Live Updates
                   </>
                 ) : (
                   <>
-                    <span style={{ fontSize: '16px' }}>⏸️</span>
+                    <FiPause size={16} />
                     Pause Live Updates
                   </>
                 )}
@@ -362,7 +363,11 @@ function Dashboard() {
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <span style={{ fontSize: '24px' }}>{isPaused ? '⏸️' : '🔴'}</span>
+                {isPaused ? (
+                  <FiPause size={24} color="#ff9800" />
+                ) : (
+                  <BsCircleFill size={20} color="#ff4444" />
+                )}
                 <div>
                   <strong style={{ color: isPaused ? '#ff9800' : '#ff4444' }}>
                     {isPaused ? 'LIVE MONITORING PAUSED' : 'LIVE MONITORING MODE'}
@@ -396,7 +401,7 @@ function Dashboard() {
                   cursor: 'pointer'
                 }}
               >
-                <option value="all">👥 All Subjects</option>
+                <option value="all">All Subjects</option>
                 {patients.map(patient => (
                   <option key={patient.id} value={patient.id}>
                     {patient.label}
@@ -456,7 +461,7 @@ function Dashboard() {
                       cursor: 'pointer'
                     }}
                   >
-                    <option value="all">👥 All Patients</option>
+                    <option value="all">All Patients</option>
                     {patients.map(patient => (
                       <option key={patient.id} value={patient.id}>
                         {patient.label}
@@ -469,17 +474,25 @@ function Dashboard() {
                     className={`view-mode-btn ${viewMode === 'live' ? 'active' : ''}`}
                     onClick={() => setViewMode('live')}
                   >
-                    🔴 Live Monitor
+                    <BsCircleFill size={12} style={{ marginRight: '5px' }} /> Live Monitor
                   </button>
                   <button 
                     className={`view-mode-btn ${viewMode === 'infinite' ? 'active' : ''}`}
                     onClick={() => setViewMode('infinite')}
                   >
-                    📜 History (Infinite Scroll)
+                    <BsFileText size={14} style={{ marginRight: '5px' }} /> History (Infinite Scroll)
                   </button>
                   {viewMode === 'live' && (
-                    <span style={{ color: isPaused ? '#ff9800' : '#8b7fc7', fontSize: '12px', fontWeight: '600' }}>
-                      {isPaused ? '⏸️ Paused' : `🔄 Last update: ${lastUpdateTime.toLocaleTimeString()}`}
+                    <span style={{ color: isPaused ? '#ff9800' : '#8b7fc7', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      {isPaused ? (
+                        <>
+                          <FiPause size={14} /> Paused
+                        </>
+                      ) : (
+                        <>
+                          <FiActivity size={14} /> Last update: {lastUpdateTime.toLocaleTimeString()}
+                        </>
+                      )}
                     </span>
                   )}
                 </div>
@@ -551,7 +564,11 @@ function Dashboard() {
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <span style={{ fontSize: '24px' }}>{isPaused ? '⏸️' : '🔴'}</span>
+                {isPaused ? (
+                  <FiPause size={24} color="#ff9800" />
+                ) : (
+                  <BsCircleFill size={20} color="#ff4444" />
+                )}
                 <div>
                   <strong style={{ color: isPaused ? '#ff9800' : '#ff4444' }}>
                     {isPaused ? 'LIVE ANALYTICS PAUSED' : 'LIVE ANALYTICS'}
@@ -597,7 +614,11 @@ function Dashboard() {
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <span style={{ fontSize: '24px' }}>{isPaused ? '⏸️' : '🔴'}</span>
+                {isPaused ? (
+                  <FiPause size={24} color="#ff9800" />
+                ) : (
+                  <BsCircleFill size={20} color="#ff4444" />
+                )}
                 <div>
                   <strong style={{ color: isPaused ? '#ff9800' : '#ff4444' }}>
                     {isPaused ? 'LIVE ALERT MONITORING PAUSED' : 'LIVE ALERT MONITORING'}
