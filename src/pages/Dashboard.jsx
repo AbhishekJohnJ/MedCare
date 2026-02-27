@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiPlus, FiTrash2, FiMenu, FiX } from 'react-icons/fi'
+import { IoMdPeople, IoMdDocument, IoMdHeart } from 'react-icons/io'
+import { MdWarning } from 'react-icons/md'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -9,6 +12,7 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview')
   const [vitalsData, setVitalsData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalRecords: 0,
@@ -135,7 +139,7 @@ function Dashboard() {
     }))
   }
 
-  const COLORS = ['#667eea', '#764ba2', '#f093fb', '#4facfe']
+  const COLORS = ['#8b7fc7', '#a78bfa', '#c4b5fd', '#ddd6fe']
 
   if (loading) {
     return (
@@ -149,22 +153,21 @@ function Dashboard() {
   return (
     <div className="dashboard-container">
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+          <FiMenu size={20} />
+        </button>
+        
         <div className="sidebar-header">
           <div className="logo">
-            <svg viewBox="0 0 50 50" fill="none">
-              <rect width="50" height="50" rx="10" fill="url(#gradient)"/>
-              <path d="M25 15L25 35M15 25L35 25" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="50" y2="50">
-                  <stop offset="0%" stopColor="#667eea"/>
-                  <stop offset="100%" stopColor="#764ba2"/>
-                </linearGradient>
-              </defs>
-            </svg>
+            <img src="/logo.png" alt="MediCare Logo" />
           </div>
-          <h2>MediCare</h2>
-          <p className="subtitle">Patient Vitals Monitor</p>
+          {sidebarOpen && (
+            <>
+              <h2>MediCare</h2>
+              <p className="subtitle">Patient Vitals Monitor</p>
+            </>
+          )}
         </div>
 
         
@@ -172,31 +175,35 @@ function Dashboard() {
           <button 
             className={activeTab === 'overview' ? 'active' : ''} 
             onClick={() => setActiveTab('overview')}
+            title="Overview"
           >
-            📊 Overview
+            <FiBarChart2 size={18} /> {sidebarOpen && 'Overview'}
           </button>
           <button 
             className={activeTab === 'patients' ? 'active' : ''} 
             onClick={() => setActiveTab('patients')}
+            title="Patients"
           >
-            👥 Patients
+            <FiUsers size={18} /> {sidebarOpen && 'Patients'}
           </button>
           <button 
             className={activeTab === 'analytics' ? 'active' : ''} 
             onClick={() => setActiveTab('analytics')}
+            title="Analytics"
           >
-            📈 Analytics
+            <FiTrendingUp size={18} /> {sidebarOpen && 'Analytics'}
           </button>
           <button 
             className={activeTab === 'alerts' ? 'active' : ''} 
             onClick={() => setActiveTab('alerts')}
+            title="Alerts"
           >
-            🔔 Alerts
+            <FiBell size={18} /> {sidebarOpen && 'Alerts'}
           </button>
         </nav>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          🚪 Logout
+        <button className="logout-btn" onClick={handleLogout} title="Logout">
+          <FiLogOut size={18} /> {sidebarOpen && 'Logout'}
         </button>
       </aside>
 
@@ -209,7 +216,7 @@ function Dashboard() {
           </div>
           <div className="navbar-right">
             <div className="navbar-item notification">
-              <span className="navbar-icon">�</span>
+              <FiBell size={20} />
               <span className="badge">{stats.criticalAlerts}</span>
             </div>
           </div>
@@ -221,21 +228,21 @@ function Dashboard() {
             {/* Stats Cards */}
             <div className="stats-grid">
               <div className="stat-card">
-                <div className="stat-icon">👥</div>
+                <div className="stat-icon"><IoMdPeople size={40} color="#8b7fc7" /></div>
                 <div className="stat-info">
                   <p className="stat-label">Total Patients</p>
                   <p className="stat-value">{stats.totalPatients}</p>
                 </div>
               </div>
               <div className="stat-card">
-                <div className="stat-icon">📋</div>
+                <div className="stat-icon"><IoMdDocument size={40} color="#8b7fc7" /></div>
                 <div className="stat-info">
                   <p className="stat-label">Total Records</p>
                   <p className="stat-value">{stats.totalRecords.toLocaleString()}</p>
                 </div>
               </div>
               <div className="stat-card">
-                <div className="stat-icon">💓</div>
+                <div className="stat-icon"><IoMdHeart size={40} color="#8b7fc7" /></div>
                 <div className="stat-info">
                   <p className="stat-label">Avg Value</p>
                   <p className="stat-value">{stats.avgHeartRate}</p>
@@ -248,11 +255,11 @@ function Dashboard() {
                 <h3>Patient Records Distribution</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={getPatientDistribution()}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                    <XAxis dataKey="patient" stroke="#888" />
-                    <YAxis stroke="#888" />
-                    <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
-                    <Bar dataKey="records" fill="#667eea" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
+                    <XAxis dataKey="patient" stroke="#6d5fa3" />
+                    <YAxis stroke="#6d5fa3" />
+                    <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
+                    <Bar dataKey="records" fill="#8b7fc7" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -275,7 +282,7 @@ function Dashboard() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
+                    <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -290,7 +297,7 @@ function Dashboard() {
               <div className="table-header">
                 <h3>Recent Patient Records</h3>
                 <button className="add-record-btn" onClick={() => setShowAddModal(true)}>
-                  ➕ Add Record
+                  <FiPlus size={18} /> Add Record
                 </button>
               </div>
               <div className="table-wrapper">
@@ -321,7 +328,7 @@ function Dashboard() {
                         </td>
                         <td>
                           <button className="delete-row-btn" onClick={() => deleteRecord(index)}>
-                            🗑️
+                            <FiTrash2 size={16} />
                           </button>
                         </td>
                       </tr>
@@ -394,12 +401,12 @@ function Dashboard() {
               <h3>Readings Timeline</h3>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={getTimelineData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="time" stroke="#888" />
-                  <YAxis stroke="#888" />
-                  <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
+                  <XAxis dataKey="time" stroke="#6d5fa3" />
+                  <YAxis stroke="#6d5fa3" />
+                  <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
                   <Legend />
-                  <Line type="monotone" dataKey="readings" stroke="#667eea" strokeWidth={2} />
+                  <Line type="monotone" dataKey="readings" stroke="#8b7fc7" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -411,7 +418,7 @@ function Dashboard() {
           <div className="content-section">
             {/* Critical Alerts Summary Card */}
             <div className="alert-summary-card">
-              <div className="alert-summary-icon">⚠️</div>
+              <div className="alert-summary-icon"><MdWarning size={80} color="white" /></div>
               <div className="alert-summary-content">
                 <p className="alert-summary-label">Critical Alerts</p>
                 <p className="alert-summary-value">{stats.criticalAlerts}</p>
@@ -423,10 +430,10 @@ function Dashboard() {
               <h3>Alert Trends Over Time</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={getAlertTimelineData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                  <XAxis dataKey="time" stroke="#888" />
-                  <YAxis stroke="#888" />
-                  <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
+                  <XAxis dataKey="time" stroke="#6d5fa3" />
+                  <YAxis stroke="#6d5fa3" />
+                  <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
                   <Legend />
                   <Bar dataKey="alerts" fill="#ff4444" name="Alert Count" />
                 </BarChart>
@@ -438,7 +445,7 @@ function Dashboard() {
               <h3>Recent Critical Alerts</h3>
               {vitalsData.filter(r => r.warning === '1').slice(0, 20).map((record, index) => (
                 <div key={index} className="alert-item">
-                  <div className="alert-icon">⚠️</div>
+                  <div className="alert-icon"><MdWarning size={24} color="#ff4444" /></div>
                   <div className="alert-content">
                     <p className="alert-title">Patient P-{record.subject_id?.slice(-6)}</p>
                     <p className="alert-desc">
