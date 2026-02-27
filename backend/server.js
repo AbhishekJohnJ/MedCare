@@ -168,6 +168,17 @@ app.get('/api/vitals', async (req, res) => {
   }
 });
 
+// GET route to retrieve ALL patient vitals (no limit)
+app.get('/api/vitals/all', async (req, res) => {
+  try {
+    const vitals = await PatientVital.find()
+      .sort({ timestamp: -1 });
+    res.json(vitals);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET route to retrieve patient vitals by patientId
 app.get('/api/vitals/:patientId', async (req, res) => {
   try {
