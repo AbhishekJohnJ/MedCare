@@ -24,6 +24,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 mongoose.connect(MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB successfully');
+    
+    // Create indexes for better performance with large datasets
+    PatientVital.collection.createIndex({ timestamp: -1 });
+    PatientVital.collection.createIndex({ patientId: 1 });
+    PatientVital.collection.createIndex({ predictedEvent: 1 });
+    console.log('Database indexes created');
   })
   .catch((error) => {
     console.error('MongoDB connection error:', error);
@@ -155,14 +161,50 @@ app.post('/api/vitals', async (req, res) => {
   }
 });
 
-// GET route to retrieve all patient vitals
+// GET route to retrieve all patient vitals with pagination
 app.get('/api/vitals', async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 100;
-    const vitals = await PatientVital.find()
-      .sort({ timestamp: -1 })
-      .limit(limit);
-    res.json(vitals);
+    const skip = (page - 1) * limit;
+    const patientId = req.query.patientId; // Filter by patient ID
+    
+    const query = patientId ? { patientId } : {};
+    
+    const [vitals, totalCount] = await Promise.all([
+      PatientVital.find(query)
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      PatientVital.countDocuments(query)
+    ]);
+    
+    res.json({
+      data: vitals,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalRecords: totalCount,
+        recordsPerPage: limit,
+        hasNextPage: skip + vitals.length < totalCount,
+        hasPrevPage: page > 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET route to retrieve all unique patient IDs
+app.get('/api/patients', async (req, res) => {
+  try {
+    const patients = await PatientVital.distinct('patientId');
+    const patientList = patients.filter(p => p !== null).map(id => ({
+      id,
+      label: id
+    }));
+    res.json(patientList);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

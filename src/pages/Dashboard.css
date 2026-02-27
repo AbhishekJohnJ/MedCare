@@ -691,3 +691,206 @@
 .submit-btn:hover {
   transform: translateY(-2px);
 }
+
+/* Pagination Styles */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: white;
+  border-top: 1px solid #e8e3fa;
+  border-radius: 0 0 12px 12px;
+  margin-top: -1px;
+}
+
+.pagination-info {
+  color: #5a5278;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #8b7fc7 0%, #7c6cd8 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 127, 199, 0.3);
+}
+
+.pagination-btn:disabled {
+  background: #e8e3fa;
+  color: #9d96bb;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.page-indicator {
+  color: #4a3f6f;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0 10px;
+}
+
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-jump-input {
+  width: 120px;
+  padding: 8px 12px;
+  border: 2px solid #e8e3fa;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #4a3f6f;
+  transition: all 0.3s ease;
+}
+
+.page-jump-input:focus {
+  outline: none;
+  border-color: #8b7fc7;
+  box-shadow: 0 0 0 3px rgba(139, 127, 199, 0.1);
+}
+
+.page-jump-input::placeholder {
+  color: #9d96bb;
+}
+
+/* Smooth data transition */
+.data-table tbody {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.stat-value, .stat-label {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Subtle pulse animation for updated data */
+@keyframes subtle-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.data-updating {
+  animation: subtle-pulse 0.5s ease-in-out;
+}
+
+/* View Mode Toggle Buttons */
+.view-mode-btn {
+  padding: 8px 16px;
+  background: white;
+  color: #5a5278;
+  border: 2px solid #e8e3fa;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.view-mode-btn:hover {
+  border-color: #8b7fc7;
+  color: #8b7fc7;
+}
+
+.view-mode-btn.active {
+  background: linear-gradient(135deg, #8b7fc7 0%, #7c6cd8 100%);
+  color: white;
+  border-color: #8b7fc7;
+}
+
+/* Smooth scroll for infinite mode */
+.table-wrapper {
+  scroll-behavior: smooth;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f4f1fd;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #8b7fc7;
+  border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #7c6cd8;
+}
+
+/* Live Mode Indicator */
+.view-mode-btn.active[class*="Live"] {
+  position: relative;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+  }
+}
+
+.view-mode-btn.active[class*="Live"]::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Smooth data update animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.data-table tbody tr {
+  animation: fadeIn 0.3s ease-in-out;
+}

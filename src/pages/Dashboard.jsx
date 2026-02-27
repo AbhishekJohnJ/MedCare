@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiPlus, FiTrash2, FiMenu, FiX } from 'react-icons/fi'
+import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiTrash2, FiMenu, FiX } from 'react-icons/fi'
 import { IoMdPeople, IoMdDocument, IoMdHeart } from 'react-icons/io'
 import { MdWarning } from 'react-icons/md'
 import './Dashboard.css'
@@ -12,39 +12,118 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview')
   const [vitalsData, setVitalsData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalRecords: 0,
+    recordsPerPage: 100,
+    hasNextPage: false,
+    hasPrevPage: false
+  })
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalRecords: 0,
     avgHeartRate: 0,
     criticalAlerts: 0
   })
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [viewMode, setViewMode] = useState('live') // 'live', 'pagination', or 'infinite'
+  const [lastUpdateTime, setLastUpdateTime] = useState(new Date())
+  const [patients, setPatients] = useState([])
+  const [selectedPatient, setSelectedPatient] = useState('all') // 'all' or specific patient ID
 
-  // Fetch data from MongoDB
-  const fetchVitalsData = async () => {
+  // Fetch data from MongoDB with pagination
+  const fetchVitalsData = async (page = 1, showLoader = true, append = false) => {
     try {
-      const response = await fetch('http://localhost:3000/api/vitals?limit=100')
-      const data = await response.json()
-      setVitalsData(data)
-      updateStats(data)
-      setLoading(false)
+      if (showLoader) {
+        setLoading(true)
+      }
+      if (append) {
+        setLoadingMore(true)
+      }
+      
+      const patientFilter = selectedPatient !== 'all' ? `&patientId=${selectedPatient}` : '';
+      const response = await fetch(`http://localhost:3000/api/vitals?page=${page}&limit=100${patientFilter}`)
+      const result = await response.json()
+      
+      if (result.data && result.pagination) {
+        if (append) {
+          // Append new data for infinite scroll
+          setVitalsData(prev => [...prev, ...result.data])
+        } else {
+          // Replace data for pagination
+          setVitalsData(result.data)
+        }
+        setPagination(result.pagination)
+        setHasMore(result.pagination.hasNextPage)
+        updateStats(result.data, result.pagination.totalRecords)
+        setCurrentPage(page)
+      }
+      
+      if (showLoader) {
+        setLoading(false)
+      }
+      if (append) {
+        setLoadingMore(false)
+      }
     } catch (error) {
       console.error('Error fetching vitals data:', error)
-      setLoading(false)
+      if (showLoader) {
+        setLoading(false)
+      }
+      if (append) {
+        setLoadingMore(false)
+      }
+    }
+  }
+
+  // Fetch list of patients
+  const fetchPatients = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/patients')
+      const data = await response.json()
+      setPatients(data)
+    } catch (error) {
+      console.error('Error fetching patients:', error)
+    }
+  }
+
+  // Load more data for infinite scroll
+  const loadMoreData = () => {
+    if (!loadingMore && hasMore && viewMode === 'infinite') {
+      fetchVitalsData(currentPage + 1, false, true)
+    }
+  }
+
+  // Handle scroll event for infinite scroll
+  const handleScroll = (e) => {
+    if (viewMode !== 'infinite') return
+    
+    const { scrollTop, scrollHeight, clientHeight } = e.target
+    if (scrollHeight - scrollTop <= clientHeight * 1.5) {
+      loadMoreData()
     }
   }
 
   useEffect(() => {
-    fetchVitalsData()
-    
-    // Auto-refresh every 5 seconds
-    const interval = setInterval(() => {
-      fetchVitalsData()
-    }, 5000)
-    
-    return () => clearInterval(interval)
+    fetchPatients() // Fetch patient list on mount
+    fetchVitalsData(currentPage, true) // Show loader on initial load
   }, [])
+
+  useEffect(() => {
+    // Live mode: Auto-refresh every second, replacing old data
+    if (viewMode === 'live') {
+      const interval = setInterval(() => {
+        fetchVitalsData(1, false, false) // Always fetch page 1 in live mode
+        setLastUpdateTime(new Date())
+      }, 1000) // Update every second
+      
+      return () => clearInterval(interval)
+    }
+  }, [viewMode, selectedPatient]) // Re-run when patient filter changes
 
   const deleteRecord = async (id) => {
     // For now, just remove from local state
@@ -54,29 +133,7 @@ function Dashboard() {
     updateStats(newData)
   }
 
-  const addRecord = async (newRecord) => {
-    try {
-      const response = await fetch('http://localhost:3000/api/vitals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newRecord)
-      })
-      
-      if (response.ok) {
-        // Refresh data after adding
-        await fetchVitalsData()
-        setShowAddModal(false)
-      } else {
-        console.error('Failed to add record')
-      }
-    } catch (error) {
-      console.error('Error adding record:', error)
-    }
-  }
-
-  const updateStats = (data) => {
+  const updateStats = (data, totalRecords = null) => {
     const uniquePatients = new Set(data.map(d => d.patientId)).size
     const avgHR = data.length > 0 
       ? data.reduce((sum, d) => sum + (d.heartRate || 0), 0) / data.length 
@@ -90,17 +147,6 @@ function Dashboard() {
       criticalAlerts: criticalCount
     })
   }
-
-  useEffect(() => {
-    fetchVitalsData()
-    
-    // Auto-refresh every 5 seconds
-    const interval = setInterval(() => {
-      fetchVitalsData()
-    }, 5000)
-    
-    return () => clearInterval(interval)
-  }, [])
 
   const loadCSVData = async () => {
     // This function is no longer needed, keeping for compatibility
@@ -251,6 +297,26 @@ function Dashboard() {
         {/* Content based on active tab */}
         {activeTab === 'overview' && (
           <div className="content-section">
+            {viewMode === 'live' && (
+              <div style={{ 
+                background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
+                padding: '15px',
+                borderRadius: '12px',
+                marginBottom: '20px',
+                border: '2px solid rgba(255, 68, 68, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '24px' }}>🔴</span>
+                <div>
+                  <strong style={{ color: '#ff4444' }}>LIVE MONITORING MODE</strong>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#5a5278' }}>
+                    Showing latest readings • Updates every second • Switch to History to view all records
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Stats Cards */}
             <div className="stats-grid">
               <div className="stat-card">
@@ -321,12 +387,67 @@ function Dashboard() {
           <div className="content-section">
             <div className="table-card">
               <div className="table-header">
-                <h3>Recent Patient Records</h3>
-                <button className="add-record-btn" onClick={() => setShowAddModal(true)}>
-                  <FiPlus size={18} /> Add Record
-                </button>
+                <h3>Patient Records ({pagination.totalRecords.toLocaleString()} total)</h3>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {/* Patient Filter */}
+                  <select 
+                    value={selectedPatient}
+                    onChange={(e) => {
+                      setSelectedPatient(e.target.value)
+                      setVitalsData([])
+                      setCurrentPage(1)
+                      fetchVitalsData(1, true, false)
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '2px solid #e8e3fa',
+                      background: 'white',
+                      color: '#5a5278',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">👥 All Patients</option>
+                    {patients.map(patient => (
+                      <option key={patient.id} value={patient.id}>
+                        {patient.label}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {/* View Mode Buttons */}
+                  <button 
+                    className={`view-mode-btn ${viewMode === 'live' ? 'active' : ''}`}
+                    onClick={() => {
+                      setViewMode('live')
+                      setVitalsData([])
+                      setCurrentPage(1)
+                      fetchVitalsData(1, true, false)
+                    }}
+                  >
+                    🔴 Live Monitor
+                  </button>
+                  <button 
+                    className={`view-mode-btn ${viewMode === 'infinite' ? 'active' : ''}`}
+                    onClick={() => {
+                      setViewMode('infinite')
+                      setVitalsData([])
+                      setCurrentPage(1)
+                      fetchVitalsData(1, true, false)
+                    }}
+                  >
+                    📜 History (Infinite Scroll)
+                  </button>
+                  {viewMode === 'live' && (
+                    <span style={{ color: '#8b7fc7', fontSize: '12px', fontWeight: '600' }}>
+                      🔄 Last update: {lastUpdateTime.toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="table-wrapper">
+              <div className="table-wrapper" onScroll={handleScroll} style={{ maxHeight: viewMode === 'infinite' ? '600px' : 'auto', overflowY: viewMode === 'infinite' ? 'auto' : 'visible' }}>
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -363,58 +484,43 @@ function Dashboard() {
                     ))}
                   </tbody>
                 </table>
+                {viewMode === 'infinite' && loadingMore && (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#8b7fc7' }}>
+                    Loading more records...
+                  </div>
+                )}
+                {viewMode === 'infinite' && !hasMore && vitalsData.length > 0 && (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#9d96bb' }}>
+                    All records loaded ({vitalsData.length.toLocaleString()} of {pagination.totalRecords.toLocaleString()})
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Add Record Modal */}
-            {showAddModal && (
-              <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                  <h3>Add New Patient Record</h3>
-                  <form onSubmit={(e) => {
-                    e.preventDefault()
-                    const formData = new FormData(e.target)
-                    const newRecord = {
-                      patientId: formData.get('patientId'),
-                      heartRate: parseFloat(formData.get('heartRate')),
-                      spO2: parseFloat(formData.get('spO2')),
-                      meanArterialPressure: parseFloat(formData.get('map')) || undefined
-                    }
-                    addRecord(newRecord)
-                  }}>
-                    <div className="form-group">
-                      <label>Patient ID</label>
-                      <input type="text" name="patientId" required placeholder="e.g., patient_001" />
-                    </div>
-                    <div className="form-group">
-                      <label>Heart Rate (bpm)</label>
-                      <input type="number" name="heartRate" required placeholder="e.g., 75" />
-                    </div>
-                    <div className="form-group">
-                      <label>SpO2 (%)</label>
-                      <input type="number" name="spO2" required placeholder="e.g., 95" min="0" max="100" />
-                    </div>
-                    <div className="form-group">
-                      <label>Mean Arterial Pressure (mmHg)</label>
-                      <input type="number" name="map" placeholder="e.g., 80" />
-                    </div>
-                    <div className="modal-actions">
-                      <button type="button" className="cancel-btn" onClick={() => setShowAddModal(false)}>
-                        Cancel
-                      </button>
-                      <button type="submit" className="submit-btn">
-                        Add Record
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
         {activeTab === 'analytics' && (
           <div className="content-section">
+            {viewMode === 'live' && (
+              <div style={{ 
+                background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
+                padding: '15px',
+                borderRadius: '12px',
+                marginBottom: '20px',
+                border: '2px solid rgba(255, 68, 68, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '24px' }}>🔴</span>
+                <div>
+                  <strong style={{ color: '#ff4444' }}>LIVE ANALYTICS</strong>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#5a5278' }}>
+                    Real-time data visualization • Updates every second
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="chart-card full-width">
               <h3>Readings Timeline</h3>
               <ResponsiveContainer width="100%" height={400}>
@@ -434,6 +540,26 @@ function Dashboard() {
 
         {activeTab === 'alerts' && (
           <div className="content-section">
+            {viewMode === 'live' && (
+              <div style={{ 
+                background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
+                padding: '15px',
+                borderRadius: '12px',
+                marginBottom: '20px',
+                border: '2px solid rgba(255, 68, 68, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '24px' }}>🔴</span>
+                <div>
+                  <strong style={{ color: '#ff4444' }}>LIVE ALERT MONITORING</strong>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#5a5278' }}>
+                    Real-time critical alerts • AI analysis active • Updates every second
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Critical Alerts Summary Card */}
             <div className="alert-summary-card">
               <div className="alert-summary-icon"><MdWarning size={80} color="white" /></div>
