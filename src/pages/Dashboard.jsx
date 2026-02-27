@@ -20,20 +20,29 @@ function Dashboard() {
   const deleteRecord = (index) => {
     const newData = vitalsData.filter((_, i) => i !== index)
     setVitalsData(newData)
-    // Update stats
-    setStats(prev => ({
-      ...prev,
-      totalRecords: newData.length
-    }))
+    updateStats(newData)
   }
 
   const addRecord = (newRecord) => {
-    setVitalsData([newRecord, ...vitalsData])
-    setStats(prev => ({
-      ...prev,
-      totalRecords: prev.totalRecords + 1
-    }))
+    const newData = [...vitalsData, newRecord]
+    setVitalsData(newData)
+    updateStats(newData)
     setShowAddModal(false)
+  }
+
+  const updateStats = (data) => {
+    const uniquePatients = new Set(data.map(d => d.subject_id)).size
+    const numericValues = data.filter(d => d.valuenum && !isNaN(d.valuenum))
+    const avgValue = numericValues.length > 0 
+      ? numericValues.reduce((sum, d) => sum + parseFloat(d.valuenum), 0) / numericValues.length 
+      : 0
+    
+    setStats({
+      totalPatients: uniquePatients,
+      totalRecords: data.length,
+      avgHeartRate: avgValue.toFixed(1),
+      criticalAlerts: data.filter(d => d.warning === '1').length
+    })
   }
 
   useEffect(() => {
@@ -50,21 +59,13 @@ function Dashboard() {
         complete: (results) => {
           const data = results.data.filter(row => row.subject_id)
           
-          // Calculate statistics
-          const uniquePatients = new Set(data.map(d => d.subject_id)).size
-          const numericValues = data.filter(d => d.valuenum && !isNaN(d.valuenum))
-          const avgValue = numericValues.length > 0 
-            ? numericValues.reduce((sum, d) => sum + parseFloat(d.valuenum), 0) / numericValues.length 
-            : 0
+          // Only load first 50 records for display
+          const displayData = data.slice(0, 50)
+          setVitalsData(displayData)
           
-          setStats({
-            totalPatients: uniquePatients,
-            totalRecords: data.length,
-            avgHeartRate: avgValue.toFixed(1),
-            criticalAlerts: data.filter(d => d.warning === '1').length
-          })
+          // Calculate statistics from displayed data only
+          updateStats(displayData)
           
-          setVitalsData(data.slice(0, 1000))
           setLoading(false)
         }
       })
@@ -116,6 +117,21 @@ function Dashboard() {
     return Object.entries(timeline).map(([hour, count]) => ({
       time: `${hour}:00`,
       readings: count
+    }))
+  }
+
+  const getAlertTimelineData = () => {
+    const timeline = {}
+    const alerts = vitalsData.filter(r => r.warning === '1')
+    alerts.forEach(record => {
+      if (record.charttime) {
+        const hour = new Date(record.charttime).getHours()
+        timeline[hour] = (timeline[hour] || 0) + 1
+      }
+    })
+    return Object.entries(timeline).map(([hour, count]) => ({
+      time: `${hour}:00`,
+      alerts: count
     }))
   }
 
@@ -291,7 +307,7 @@ function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {vitalsData.slice(0, 50).map((record, index) => (
+                    {vitalsData.map((record, index) => (
                       <tr key={index}>
                         <td>P-{record.subject_id?.slice(-6)}</td>
                         <td>{new Date(record.charttime).toLocaleString()}</td>
@@ -406,13 +422,13 @@ function Dashboard() {
             <div className="chart-card full-width">
               <h3>Alert Trends Over Time</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={getTimelineData()}>
+                <BarChart data={getAlertTimelineData()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                   <XAxis dataKey="time" stroke="#888" />
                   <YAxis stroke="#888" />
                   <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid #333' }} />
                   <Legend />
-                  <Bar dataKey="readings" fill="#ff4444" name="Alert Count" />
+                  <Bar dataKey="alerts" fill="#ff4444" name="Alert Count" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
