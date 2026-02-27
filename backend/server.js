@@ -155,6 +155,19 @@ app.post('/api/vitals', async (req, res) => {
   }
 });
 
+// GET route to retrieve all patient vitals
+app.get('/api/vitals', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const vitals = await PatientVital.find()
+      .sort({ timestamp: -1 })
+      .limit(limit);
+    res.json(vitals);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET route to retrieve patient vitals by patientId
 app.get('/api/vitals/:patientId', async (req, res) => {
   try {
