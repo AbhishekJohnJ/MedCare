@@ -134,10 +134,12 @@ function SignupForm() {
   const [pwErr, setPwErr] = useState(false);
   const [confirmPwErr, setConfirmPwErr] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  function doSignup() {
+  async function doSignup() {
     let ok = true;
-    setNameErr(false); setEmailErr(false); setPwErr(false); setConfirmPwErr(false);
+    setNameErr(false); setEmailErr(false); setPwErr(false); setConfirmPwErr(false); setErrorMsg("");
     
     if (!name.trim()) { setNameErr(true); ok = false; }
     if (!email || !/\S+@\S+\.\S+/.test(email)) { setEmailErr(true); ok = false; }
@@ -147,10 +149,32 @@ function SignupForm() {
     if (!ok) return;
     
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMsg(data.error || 'Signup failed');
+        setLoading(false);
+        return;
+      }
+
+      // Don't store token - user needs to login
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate('/login');
+      }, 1500);
+    } catch (error) {
+      console.error('Signup error:', error);
+      setErrorMsg('Unable to connect to server');
       setLoading(false);
-      navigate('/dashboard');
-    }, 1100);
+    }
   }
 
   function handleKey(e) { if (e.key === "Enter") doSignup(); }
@@ -288,12 +312,37 @@ function SignupForm() {
             <div className="spin" />
           </button>
 
+          {errorMsg && (
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '10px', 
+              background: 'rgba(239, 68, 68, 0.1)', 
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              color: '#dc2626',
+              fontSize: '13px',
+              textAlign: 'center'
+            }}>
+              {errorMsg}
+            </div>
+          )}
+
           <div className="sp-md" />
           <div className="f-footer">
             Already have an account? <a href="/login">Sign in</a>
           </div>
         </div>
       </div>
+      
+      {showSuccess && (
+        <div className="toast-notification">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          Account created! Redirecting to login...
+        </div>
+      )}
     </div>
   );
 }
