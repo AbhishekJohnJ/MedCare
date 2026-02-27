@@ -6,8 +6,8 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const API_URL = 'http://localhost:3000/api/vitals';
 const CSV_FILE = path.join(__dirname, 'chartevents.csv');
-const INTERVAL = 2000; // 2 seconds
-const PATIENT_ID = 'patient_001';
+const INTERVAL = 5000; // 5 seconds
+const RECORDS_PER_BATCH = 5; // Send 5 records every 5 seconds
 const MAX_ROWS = 50000; // Limit rows to prevent memory issues
 
 // Label IDs for vital signs (MIMIC-IV)
@@ -142,45 +142,91 @@ function loadCSVData() {
   });
 }
 
-// Create vitals data object
+// Create vitals data object with variation
 function createVitalsData(subjectId) {
   const vitals = vitalsBySubject[subjectId];
   
+  // Add realistic variation to vital signs
+  const baseHeartRate = vitals.heartRate || 75;
+  const baseSpO2 = vitals.spO2 || 95;
+  const baseMAP = vitals.map || 80;
+  
+  // Create variation patterns for different subjects
+  const subjectVariation = getSubjectVariation(subjectId);
+  
+  // Apply variation with realistic medical ranges
+  const heartRate = Math.max(40, Math.min(180, 
+    baseHeartRate + (Math.random() - 0.5) * subjectVariation.hrVariation
+  ));
+  
+  const spO2 = Math.max(70, Math.min(100, 
+    baseSpO2 + (Math.random() - 0.5) * subjectVariation.spo2Variation
+  ));
+  
+  const meanArterialPressure = Math.max(50, Math.min(120, 
+    baseMAP + (Math.random() - 0.5) * subjectVariation.mapVariation
+  ));
+  
   return {
-    patientId: PATIENT_ID,
-    timestamp: vitals.timestamp || new Date().toISOString(),
-    heartRate: vitals.heartRate || 75,
-    meanArterialPressure: vitals.map || 80,
-    spO2: vitals.spO2 || 95
+    patientId: subjectId,
+    timestamp: new Date().toISOString(),
+    heartRate: Math.round(heartRate),
+    meanArterialPressure: Math.round(meanArterialPressure),
+    spO2: Math.round(spO2)
   };
 }
 
-// Send data to API
+// Get variation patterns for different subjects to create diverse risk profiles
+function getSubjectVariation(subjectId) {
+  const hash = subjectId.toString().split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  
+  const patterns = [
+    // Stable patient
+    { hrVariation: 10, spo2Variation: 3, mapVariation: 8 },
+    // Moderate risk patient
+    { hrVariation: 25, spo2Variation: 8, mapVariation: 15 },
+    // High risk patient
+    { hrVariation: 40, spo2Variation: 15, mapVariation: 25 },
+    // Critical patient
+    { hrVariation: 50, spo2Variation: 20, mapVariation: 30 },
+    // Recovering patient
+    { hrVariation: 15, spo2Variation: 5, mapVariation: 12 }
+  ];
+  
+  return patterns[Math.abs(hash) % patterns.length];
+}
+
+// Send multiple data points to API
 async function ingestData() {
   if (patientIds.length === 0) {
     console.log('No data available to ingest');
     return;
   }
 
-  // Get current patient and cycle through data
-  const subjectId = patientIds[currentIndex];
-  currentIndex = (currentIndex + 1) % patientIds.length;
+  console.log(`\n--- Ingesting ${RECORDS_PER_BATCH} records at ${new Date().toLocaleTimeString()} ---`);
+  
+  for (let i = 0; i < RECORDS_PER_BATCH; i++) {
+    // Get current patient and cycle through data
+    const subjectId = patientIds[currentIndex];
+    currentIndex = (currentIndex + 1) % patientIds.length;
 
-  try {
-    const vitalsData = createVitalsData(subjectId);
-    const response = await axios.post(API_URL, vitalsData);
-    
-    console.log('Data Ingested Successfully', {
-      sourceSubject: subjectId,
-      patientId: vitalsData.patientId,
-      heartRate: vitalsData.heartRate,
-      spO2: vitalsData.spO2,
-      map: vitalsData.meanArterialPressure,
-      riskScore: response.data.riskScore,
-      predictedEvent: response.data.predictedEvent
-    });
-  } catch (error) {
-    console.error('Error ingesting data:', error.message);
+    try {
+      const vitalsData = createVitalsData(subjectId);
+      const response = await axios.post(API_URL, vitalsData);
+      
+      const riskIcon = response.data.predictedEvent === 'High Risk' ? '🔴' : '🟢';
+      
+      console.log(`${riskIcon} Subject ${subjectId}: HR=${vitalsData.heartRate}, SpO2=${vitalsData.spO2}%, MAP=${vitalsData.meanArterialPressure} | Risk: ${response.data.predictedEvent} (${response.data.riskScore})`);
+      
+      // Small delay between records to avoid overwhelming the server
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+    } catch (error) {
+      console.error(`❌ Error ingesting data for subject ${subjectId}:`, error.message);
+    }
   }
 }
 
@@ -198,13 +244,14 @@ async function startIngestion() {
     }
     
     console.log('Starting data ingestion...');
-    console.log(`Posting data every ${INTERVAL / 1000} seconds to ${API_URL}`);
-    console.log(`Using patient ID: ${PATIENT_ID}`);
+    console.log(`Posting ${RECORDS_PER_BATCH} records every ${INTERVAL / 1000} seconds to ${API_URL}`);
+    console.log(`Found ${patientIds.length} unique subjects with complete vitals`);
+    console.log(`Each subject will have varied vital signs for realistic risk assessment\n`);
     
-    // Ingest first row immediately
+    // Ingest first batch immediately
     await ingestData();
     
-    // Then continue every 2 seconds
+    // Then continue every 5 seconds
     setInterval(ingestData, INTERVAL);
   } catch (error) {
     console.error('Error starting ingestion:', error.message);
