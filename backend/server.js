@@ -3,7 +3,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 const PatientVital = require('./PatientVital');
+const User = require('./User');
 
 // Load environment variables from root .env file
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -17,6 +19,7 @@ app.use(express.json());
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/your_database_name';
 const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
@@ -30,6 +33,92 @@ mongoose.connect(MONGODB_URI)
 app.get('/', (req, res) => {
   res.json({ message: 'Server is running' });
 });
+
+// ============ AUTH ROUTES ============
+
+// Signup route
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Validate input
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+
+    // Create new user
+    const user = new User({ name, email, password });
+    await user.save();
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.status(201).json({
+      message: 'User created successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ error: 'Server error during signup' });
+  }
+});
+
+// Login route
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Check password
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error during login' });
+  }
+});
+
+// ============ VITALS ROUTES ============
 
 // Risk assessment logic function
 function assessRisk(heartRate, spO2) {
@@ -63,6 +152,19 @@ app.post('/api/vitals', async (req, res) => {
     res.status(201).json(vital);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// GET route to retrieve all patient vitals
+app.get('/api/vitals', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const vitals = await PatientVital.find()
+      .sort({ timestamp: -1 })
+      .limit(limit);
+    res.json(vitals);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

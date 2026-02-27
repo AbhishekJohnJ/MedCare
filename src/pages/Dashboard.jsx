@@ -21,62 +21,90 @@ function Dashboard() {
   })
   const [showAddModal, setShowAddModal] = useState(false)
 
-  const deleteRecord = (index) => {
-    const newData = vitalsData.filter((_, i) => i !== index)
+  // Fetch data from MongoDB
+  const fetchVitalsData = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/vitals?limit=100')
+      const data = await response.json()
+      setVitalsData(data)
+      updateStats(data)
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching vitals data:', error)
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchVitalsData()
+    
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(() => {
+      fetchVitalsData()
+    }, 5000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  const deleteRecord = async (id) => {
+    // For now, just remove from local state
+    // You can add a DELETE endpoint later
+    const newData = vitalsData.filter(record => record._id !== id)
     setVitalsData(newData)
     updateStats(newData)
   }
 
-  const addRecord = (newRecord) => {
-    const newData = [...vitalsData, newRecord]
-    setVitalsData(newData)
-    updateStats(newData)
-    setShowAddModal(false)
+  const addRecord = async (newRecord) => {
+    try {
+      const response = await fetch('http://localhost:3000/api/vitals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newRecord)
+      })
+      
+      if (response.ok) {
+        // Refresh data after adding
+        await fetchVitalsData()
+        setShowAddModal(false)
+      } else {
+        console.error('Failed to add record')
+      }
+    } catch (error) {
+      console.error('Error adding record:', error)
+    }
   }
 
   const updateStats = (data) => {
-    const uniquePatients = new Set(data.map(d => d.subject_id)).size
-    const numericValues = data.filter(d => d.valuenum && !isNaN(d.valuenum))
-    const avgValue = numericValues.length > 0 
-      ? numericValues.reduce((sum, d) => sum + parseFloat(d.valuenum), 0) / numericValues.length 
+    const uniquePatients = new Set(data.map(d => d.patientId)).size
+    const avgHR = data.length > 0 
+      ? data.reduce((sum, d) => sum + (d.heartRate || 0), 0) / data.length 
       : 0
+    const criticalCount = data.filter(d => d.predictedEvent === 'High Risk').length
     
     setStats({
       totalPatients: uniquePatients,
       totalRecords: data.length,
-      avgHeartRate: avgValue.toFixed(1),
-      criticalAlerts: data.filter(d => d.warning === '1').length
+      avgHeartRate: avgHR.toFixed(1),
+      criticalAlerts: criticalCount
     })
   }
 
   useEffect(() => {
-    loadCSVData()
+    fetchVitalsData()
+    
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(() => {
+      fetchVitalsData()
+    }, 5000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const loadCSVData = async () => {
-    try {
-      const response = await fetch('/backend/chartevents.csv')
-      const csvText = await response.text()
-      
-      Papa.parse(csvText, {
-        header: true,
-        complete: (results) => {
-          const data = results.data.filter(row => row.subject_id)
-          
-          // Only load first 50 records for display
-          const displayData = data.slice(0, 50)
-          setVitalsData(displayData)
-          
-          // Calculate statistics from displayed data only
-          updateStats(displayData)
-          
-          setLoading(false)
-        }
-      })
-    } catch (error) {
-      console.error('Error loading CSV:', error)
-      setLoading(false)
-    }
+    // This function is no longer needed, keeping for compatibility
+    console.log('Using MongoDB data instead of CSV')
   }
 
   const handleLogout = () => {
@@ -88,37 +116,35 @@ function Dashboard() {
   const getPatientDistribution = () => {
     const patientCounts = {}
     vitalsData.forEach(record => {
-      patientCounts[record.subject_id] = (patientCounts[record.subject_id] || 0) + 1
+      patientCounts[record.patientId] = (patientCounts[record.patientId] || 0) + 1
     })
     return Object.entries(patientCounts).slice(0, 10).map(([id, count]) => ({
-      patient: `P-${id.slice(-4)}`,
+      patient: id,
       records: count
     }))
   }
 
   const getValueDistribution = () => {
-    const ranges = { 'Low': 0, 'Normal': 0, 'High': 0, 'Critical': 0 }
+    const ranges = { 'Low (<60)': 0, 'Normal (60-100)': 0, 'High (100-120)': 0, 'Critical (>120)': 0 }
     vitalsData.forEach(record => {
-      const val = parseFloat(record.valuenum)
-      if (!isNaN(val)) {
-        if (val < 50) ranges['Low']++
-        else if (val < 100) ranges['Normal']++
-        else if (val < 150) ranges['High']++
-        else ranges['Critical']++
-      }
+      const hr = record.heartRate
+      if (hr < 60) ranges['Low (<60)']++
+      else if (hr <= 100) ranges['Normal (60-100)']++
+      else if (hr <= 120) ranges['High (100-120)']++
+      else ranges['Critical (>120)']++
     })
     return Object.entries(ranges).map(([name, value]) => ({ name, value }))
   }
 
   const getTimelineData = () => {
     const timeline = {}
-    vitalsData.slice(0, 100).forEach(record => {
-      if (record.charttime) {
-        const hour = new Date(record.charttime).getHours()
+    vitalsData.forEach(record => {
+      if (record.timestamp) {
+        const hour = new Date(record.timestamp).getHours()
         timeline[hour] = (timeline[hour] || 0) + 1
       }
     })
-    return Object.entries(timeline).map(([hour, count]) => ({
+    return Object.entries(timeline).sort((a, b) => a[0] - b[0]).map(([hour, count]) => ({
       time: `${hour}:00`,
       readings: count
     }))
@@ -126,14 +152,14 @@ function Dashboard() {
 
   const getAlertTimelineData = () => {
     const timeline = {}
-    const alerts = vitalsData.filter(r => r.warning === '1')
+    const alerts = vitalsData.filter(r => r.predictedEvent === 'High Risk')
     alerts.forEach(record => {
-      if (record.charttime) {
-        const hour = new Date(record.charttime).getHours()
+      if (record.timestamp) {
+        const hour = new Date(record.timestamp).getHours()
         timeline[hour] = (timeline[hour] || 0) + 1
       }
     })
-    return Object.entries(timeline).map(([hour, count]) => ({
+    return Object.entries(timeline).sort((a, b) => a[0] - b[0]).map(([hour, count]) => ({
       time: `${hour}:00`,
       alerts: count
     }))
@@ -306,28 +332,30 @@ function Dashboard() {
                     <tr>
                       <th>Patient ID</th>
                       <th>Chart Time</th>
-                      <th>Item ID</th>
-                      <th>Value</th>
-                      <th>Unit</th>
+                      <th>Heart Rate</th>
+                      <th>SpO2</th>
+                      <th>MAP</th>
+                      <th>Risk Score</th>
                       <th>Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {vitalsData.map((record, index) => (
-                      <tr key={index}>
-                        <td>P-{record.subject_id?.slice(-6)}</td>
-                        <td>{new Date(record.charttime).toLocaleString()}</td>
-                        <td>{record.itemid}</td>
-                        <td>{record.valuenum || record.value}</td>
-                        <td>{record.valueuom || '-'}</td>
+                    {vitalsData.map((record) => (
+                      <tr key={record._id}>
+                        <td>{record.patientId}</td>
+                        <td>{new Date(record.timestamp).toLocaleString()}</td>
+                        <td>{record.heartRate} bpm</td>
+                        <td>{record.spO2}%</td>
+                        <td>{record.meanArterialPressure || '-'} mmHg</td>
+                        <td>{record.riskScore?.toFixed(2) || '-'}</td>
                         <td>
-                          <span className={`status-badge ${record.warning === '1' ? 'warning' : 'normal'}`}>
-                            {record.warning === '1' ? 'Warning' : 'Normal'}
+                          <span className={`status-badge ${record.predictedEvent === 'High Risk' ? 'warning' : 'normal'}`}>
+                            {record.predictedEvent || 'Normal'}
                           </span>
                         </td>
                         <td>
-                          <button className="delete-row-btn" onClick={() => deleteRecord(index)}>
+                          <button className="delete-row-btn" onClick={() => deleteRecord(record._id)}>
                             <FiTrash2 size={16} />
                           </button>
                         </td>
@@ -347,38 +375,28 @@ function Dashboard() {
                     e.preventDefault()
                     const formData = new FormData(e.target)
                     const newRecord = {
-                      subject_id: formData.get('patientId'),
-                      charttime: new Date().toISOString(),
-                      itemid: formData.get('itemId'),
-                      value: formData.get('value'),
-                      valuenum: formData.get('value'),
-                      valueuom: formData.get('unit'),
-                      warning: formData.get('status') === 'warning' ? '1' : '0'
+                      patientId: formData.get('patientId'),
+                      heartRate: parseFloat(formData.get('heartRate')),
+                      spO2: parseFloat(formData.get('spO2')),
+                      meanArterialPressure: parseFloat(formData.get('map')) || undefined
                     }
                     addRecord(newRecord)
                   }}>
                     <div className="form-group">
                       <label>Patient ID</label>
-                      <input type="text" name="patientId" required placeholder="e.g., 10005817" />
+                      <input type="text" name="patientId" required placeholder="e.g., patient_001" />
                     </div>
                     <div className="form-group">
-                      <label>Item ID</label>
-                      <input type="text" name="itemId" required placeholder="e.g., 225054" />
+                      <label>Heart Rate (bpm)</label>
+                      <input type="number" name="heartRate" required placeholder="e.g., 75" />
                     </div>
                     <div className="form-group">
-                      <label>Value</label>
-                      <input type="text" name="value" required placeholder="e.g., 100" />
+                      <label>SpO2 (%)</label>
+                      <input type="number" name="spO2" required placeholder="e.g., 95" min="0" max="100" />
                     </div>
                     <div className="form-group">
-                      <label>Unit</label>
-                      <input type="text" name="unit" placeholder="e.g., %, bpm" />
-                    </div>
-                    <div className="form-group">
-                      <label>Status</label>
-                      <select name="status">
-                        <option value="normal">Normal</option>
-                        <option value="warning">Warning</option>
-                      </select>
+                      <label>Mean Arterial Pressure (mmHg)</label>
+                      <input type="number" name="map" placeholder="e.g., 80" />
                     </div>
                     <div className="modal-actions">
                       <button type="button" className="cancel-btn" onClick={() => setShowAddModal(false)}>
@@ -443,15 +461,15 @@ function Dashboard() {
             {/* Alerts List */}
             <div className="alerts-container">
               <h3>Recent Critical Alerts</h3>
-              {vitalsData.filter(r => r.warning === '1').slice(0, 20).map((record, index) => (
-                <div key={index} className="alert-item">
+              {vitalsData.filter(r => r.predictedEvent === 'High Risk').slice(0, 20).map((record) => (
+                <div key={record._id} className="alert-item">
                   <div className="alert-icon"><MdWarning size={24} color="#ff4444" /></div>
                   <div className="alert-content">
-                    <p className="alert-title">Patient P-{record.subject_id?.slice(-6)}</p>
+                    <p className="alert-title">{record.patientId}</p>
                     <p className="alert-desc">
-                      Item {record.itemid}: {record.value || record.valuenum} {record.valueuom}
+                      Heart Rate: {record.heartRate} bpm, SpO2: {record.spO2}%, Risk Score: {record.riskScore?.toFixed(2)}
                     </p>
-                    <p className="alert-time">{new Date(record.charttime).toLocaleString()}</p>
+                    <p className="alert-time">{new Date(record.timestamp).toLocaleString()}</p>
                   </div>
                 </div>
               ))}

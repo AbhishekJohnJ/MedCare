@@ -156,21 +156,45 @@ function LoginForm() {
   const [pwErr, setPwErr]       = useState(false);
   const [loading, setLoading]   = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  function doLogin() {
+  async function doLogin() {
     let ok = true;
-    setEmailErr(false); setPwErr(false);
+    setEmailErr(false); setPwErr(false); setErrorMsg("");
     if (!email || !/\S+@\S+\.\S+/.test(email)) { setEmailErr(true); ok = false; }
     if (!password) { setPwErr(true); ok = false; }
     if (!ok) return;
+    
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMsg(data.error || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      // Store token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
       setShowSuccess(true);
       setTimeout(() => {
         navigate('/dashboard');
       }, 800);
-    }, 1100);
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMsg('Unable to connect to server');
+      setLoading(false);
+    }
   }
 
   function handleKey(e) { if (e.key === "Enter") doLogin(); }
@@ -251,7 +275,6 @@ function LoginForm() {
             <label className="chk-lbl">
               <input type="checkbox" className="chk" /> Remember me
             </label>
-            <a href="#" className="link">Forgot password?</a>
           </div>
           <div className="sp-md" />
 
@@ -259,6 +282,21 @@ function LoginForm() {
             <span className="c-txt">Sign in →</span>
             <div className="spin" />
           </button>
+
+          {errorMsg && (
+            <div style={{ 
+              marginTop: '12px', 
+              padding: '10px', 
+              background: 'rgba(239, 68, 68, 0.1)', 
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              color: '#dc2626',
+              fontSize: '13px',
+              textAlign: 'center'
+            }}>
+              {errorMsg}
+            </div>
+          )}
 
           <div className="sp-md" />
           <div className="f-footer">
