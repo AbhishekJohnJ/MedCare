@@ -36,6 +36,130 @@ function Dashboard() {
   const [patients, setPatients] = useState([])
   const [selectedPatient, setSelectedPatient] = useState('all') // 'all' or specific patient ID
   const [isPaused, setIsPaused] = useState(false) // Pause/Resume live updates
+  
+  // AI Chat states
+  const [aiAnalysis, setAiAnalysis] = useState({
+    baselineDeviation: 0,
+    isDeviating: false,
+    hasUnusualVariability: false,
+    hrv: 0,
+    analysis: ''
+  })
+  const [selectedAIPatient, setSelectedAIPatient] = useState('all')
+  const [aiPatientList, setAiPatientList] = useState([])
+  
+  // Get unique patients for AI analysis
+  useEffect(() => {
+    if (vitalsData.length > 0) {
+      const uniquePatients = [...new Set(vitalsData.map(v => v.patientId))];
+      setAiPatientList(uniquePatients);
+    }
+  }, [vitalsData])
+  
+  // Calculate AI analysis
+  useEffect(() => {
+    if (vitalsData.length > 0) {
+      calculateAIAnalysis();
+    }
+  }, [vitalsData, selectedAIPatient])
+  
+  const calculateAIAnalysis = () => {
+    // Filter data by selected patient
+    const patientData = selectedAIPatient === 'all' 
+      ? vitalsData 
+      : vitalsData.filter(v => v.patientId === selectedAIPatient);
+    
+    if (patientData.length === 0) {
+      setAiAnalysis({
+        baselineDeviation: 0,
+        isDeviating: false,
+        hasUnusualVariability: false,
+        hrv: 0,
+        analysis: 'No data available for this patient.'
+      });
+      return;
+    }
+    
+    // Calculate baseline (average of all heart rates)
+    const heartRates = patientData.map(v => v.heartRate).filter(hr => hr);
+    const baseline = heartRates.reduce((sum, hr) => sum + hr, 0) / heartRates.length;
+    
+    // Calculate recent average (last 20 readings)
+    const recentHR = heartRates.slice(-20);
+    const recentAvg = recentHR.reduce((sum, hr) => sum + hr, 0) / recentHR.length;
+    
+    // Calculate baseline deviation percentage
+    const deviation = ((recentAvg - baseline) / baseline) * 100;
+    
+    // Calculate HRV (Heart Rate Variability) - standard deviation
+    const hrv = Math.sqrt(
+      heartRates.reduce((sum, hr) => sum + Math.pow(hr - baseline, 2), 0) / heartRates.length
+    );
+    
+    // Determine if deviating (more than 10% from baseline)
+    const isDeviating = Math.abs(deviation) > 10;
+    
+    // Determine unusual variability (HRV > 15)
+    const hasUnusualVariability = hrv > 15;
+    
+    let analysis = '';
+    if (isDeviating && hasUnusualVariability) {
+      analysis = 'Critical: Significant baseline deviation with high variability detected. Immediate attention recommended.';
+    } else if (isDeviating) {
+      analysis = 'Warning: Patient heart rate is deviating from normal baseline. Monitor closely.';
+    } else if (hasUnusualVariability) {
+      analysis = 'Alert: Unusual heart rate variability detected. Consider further evaluation.';
+    } else {
+      analysis = 'Normal: Patient vitals are within expected parameters.';
+    }
+    
+    setAiAnalysis({
+      baselineDeviation: deviation,
+      isDeviating,
+      hasUnusualVariability,
+      hrv,
+      analysis
+    });
+  }
+  
+  // Get heart rate trend data for selected patient
+  const getHeartRateTrendData = () => {
+    const patientData = selectedAIPatient === 'all' 
+      ? vitalsData 
+      : vitalsData.filter(v => v.patientId === selectedAIPatient);
+    
+    const baseline = patientData.reduce((sum, v) => sum + v.heartRate, 0) / patientData.length;
+    
+    return patientData.slice(-50).map((record, index) => ({
+      index: index + 1,
+      heartRate: record.heartRate,
+      baseline: baseline
+    }));
+  }
+  
+  // Get HRV trend data for selected patient
+  const getHRVTrendData = () => {
+    const patientData = selectedAIPatient === 'all' 
+      ? vitalsData 
+      : vitalsData.filter(v => v.patientId === selectedAIPatient);
+    
+    const windowSize = 10;
+    const hrvData = [];
+    
+    for (let i = windowSize; i < Math.min(patientData.length, 50); i++) {
+      const window = patientData.slice(i - windowSize, i);
+      const avg = window.reduce((sum, v) => sum + v.heartRate, 0) / windowSize;
+      const variance = window.reduce((sum, v) => sum + Math.pow(v.heartRate - avg, 2), 0) / windowSize;
+      const hrv = Math.sqrt(variance);
+      
+      hrvData.push({
+        index: i,
+        hrv: hrv.toFixed(2)
+      });
+    }
+    
+    return hrvData;
+  }
 
   // Fetch data from MongoDB with pagination
   const fetchVitalsData = async (page = 1, showLoader = true, append = false) => {
@@ -678,74 +802,118 @@ function Dashboard() {
         {activeTab === 'ai-mode' && (
           <div className="content-section">
             <div className="ai-mode-header">
-              <h2>AI-Powered Patient Analysis</h2>
-              <p>Advanced machine learning insights for patient care</p>
+              <h2>
+                <span className="ai-icon">🤖</span>
+                AI Analytics
+              </h2>
             </div>
 
+            {/* Patient Selector */}
+            <div className="patient-selector-card">
+              <label htmlFor="ai-patient-select">Select Patient:</label>
+              <select 
+                id="ai-patient-select"
+                value={selectedAIPatient} 
+                onChange={(e) => setSelectedAIPatient(e.target.value)}
+                className="patient-select"
+              >
+                <option value="all">All Patients (Aggregate)</option>
+                {aiPatientList.map(patientId => (
+                  <option key={patientId} value={patientId}>
+                    Patient {patientId}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Key Metrics */}
             <div className="stats-grid">
-              <div className="stat-card">
-                <FiActivity size={32} color="#8b7fc7" />
-                <h3>AI Predictions</h3>
-                <p className="stat-value">{vitalsData.length}</p>
-                <p className="stat-label">Total Analyzed</p>
+              <div className={`stat-card ${Math.abs(aiAnalysis.baselineDeviation) > 10 ? 'alert' : ''}`}>
+                <div className="stat-icon">📊</div>
+                <h3>Baseline Deviation</h3>
+                <p className="stat-value">{aiAnalysis.baselineDeviation.toFixed(1)}%</p>
+                <p className="stat-label">
+                  {Math.abs(aiAnalysis.baselineDeviation) > 10 ? 'Significant Deviation' : 'Within Normal Range'}
+                </p>
+              </div>
+              <div className={`stat-card ${aiAnalysis.hasUnusualVariability ? 'alert' : ''}`}>
+                <div className="stat-icon">💓</div>
+                <h3>Heart Rate Variability</h3>
+                <p className="stat-value">{aiAnalysis.hrv.toFixed(1)}</p>
+                <p className="stat-label">
+                  {aiAnalysis.hasUnusualVariability ? 'High Variability' : 'Normal Variability'}
+                </p>
               </div>
               <div className="stat-card">
-                <FiTrendingUp size={32} color="#10b981" />
-                <h3>Accuracy Rate</h3>
-                <p className="stat-value">94.5%</p>
-                <p className="stat-label">Model Performance</p>
-              </div>
-              <div className="stat-card">
-                <MdWarning size={32} color="#ff4444" />
-                <h3>High Risk Detected</h3>
-                <p className="stat-value">{stats.criticalAlerts}</p>
-                <p className="stat-label">Requires Attention</p>
+                <div className="stat-icon">🎯</div>
+                <h3>Patient Status</h3>
+                <p className="stat-value">{aiAnalysis.isDeviating ? 'Abnormal' : 'Normal'}</p>
+                <p className="stat-label">
+                  {aiAnalysis.isDeviating ? 'Requires Monitoring' : 'Stable Condition'}
+                </p>
               </div>
             </div>
 
+            {/* Heart Rate Trend Graph */}
             <div className="chart-card full-width">
-              <h3>AI Risk Assessment Distribution</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Low Risk', value: vitalsData.filter(r => r.predictedEvent === 'Low Risk').length },
-                      { name: 'High Risk', value: vitalsData.filter(r => r.predictedEvent === 'High Risk').length }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {[
-                      { name: 'Low Risk', value: vitalsData.filter(r => r.predictedEvent === 'Low Risk').length },
-                      { name: 'High Risk', value: vitalsData.filter(r => r.predictedEvent === 'High Risk').length }
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#ff4444'} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
+              <h3>Heart Rate Trend Analysis</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                Real-time heart rate monitoring with baseline comparison (Last 50 readings)
+              </p>
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={getHeartRateTrendData()}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
+                  <XAxis dataKey="index" stroke="#6d5fa3" />
+                  <YAxis stroke="#6d5fa3" label={{ value: 'Heart Rate (bpm)', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
+                  <Legend verticalAlign="bottom" height={36} />
+                  <Line type="monotone" dataKey="heartRate" stroke="#8b7fc7" strokeWidth={2} name="Current HR" dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="baseline" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="Baseline" dot={false} />
+                </LineChart>
               </ResponsiveContainer>
             </div>
 
+            {/* AI Insights */}
             <div className="ai-insights-card">
-              <h3>AI-Generated Insights</h3>
+              <h3>🧠 AI-Powered Insights</h3>
               <div className="insight-item">
-                <FiActivity size={20} color="#8b7fc7" />
-                <p>Machine learning model has analyzed {vitalsData.length} patient records with high accuracy</p>
+                <div className="insight-icon">
+                  {aiAnalysis.isDeviating ? '🔴' : '🟢'}
+                </div>
+                <div className="insight-content">
+                  <h4>Baseline Deviation Analysis</h4>
+                  <p>
+                    {aiAnalysis.isDeviating 
+                      ? `Patient's heart rate is ${Math.abs(aiAnalysis.baselineDeviation).toFixed(1)}% ${aiAnalysis.baselineDeviation > 0 ? 'above' : 'below'} their normal baseline. This deviation exceeds the 10% threshold and requires clinical attention.`
+                      : `Patient's heart rate is within ${Math.abs(aiAnalysis.baselineDeviation).toFixed(1)}% of their normal baseline, indicating stable cardiovascular function.`
+                    }
+                  </p>
+                </div>
               </div>
               <div className="insight-item">
-                <FiTrendingUp size={20} color="#10b981" />
-                <p>Risk prediction algorithm identifies patterns in heart rate and SpO2 levels</p>
+                <div className="insight-icon">
+                  {aiAnalysis.hasUnusualVariability ? '⚠️' : '✅'}
+                </div>
+                <div className="insight-content">
+                  <h4>Variability Assessment</h4>
+                  <p>
+                    {aiAnalysis.hasUnusualVariability
+                      ? `HRV of ${aiAnalysis.hrv.toFixed(1)} ms indicates high heart rate variability. This may suggest autonomic dysfunction, stress, or irregular cardiac rhythm requiring evaluation.`
+                      : `HRV of ${aiAnalysis.hrv.toFixed(1)} ms is within normal range, indicating healthy autonomic nervous system regulation.`
+                    }
+                  </p>
+                </div>
               </div>
               <div className="insight-item">
-                <MdWarning size={20} color="#ff4444" />
-                <p>{stats.criticalAlerts} patients flagged as high risk requiring immediate attention</p>
+                <div className="insight-icon">💡</div>
+                <div className="insight-content">
+                  <h4>Clinical Recommendation</h4>
+                  <p>
+                    {aiAnalysis.isDeviating || aiAnalysis.hasUnusualVariability
+                      ? 'Recommend: Continuous monitoring, review medication compliance, assess for acute events, and consider cardiology consultation if pattern persists.'
+                      : 'Patient vitals are stable. Continue routine monitoring and maintain current care plan.'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
