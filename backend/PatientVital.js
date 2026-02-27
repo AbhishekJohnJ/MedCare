@@ -15,7 +15,7 @@ const patientVitalSchema = new mongoose.Schema({
   },
   meanArterialPressure: {
     type: Number,
-    required: true
+    required: false
   },
   spO2: {
     type: Number,

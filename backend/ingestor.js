@@ -8,8 +8,9 @@ const API_URL = 'http://localhost:3000/api/vitals';
 const CSV_FILE = path.join(__dirname, 'chartevents.csv');
 const INTERVAL = 2000; // 2 seconds
 const PATIENT_ID = 'patient_001';
+const MAX_ROWS = 50000; // Limit rows to prevent memory issues
 
-// Label IDs for vital signs
+// Label IDs for vital signs (MIMIC-IV)
 const HEART_RATE_LABEL = '220045';
 const SPO2_LABEL = '220277';
 const MAP_LABEL = '220052'; // Mean Arterial Pressure
@@ -22,17 +23,52 @@ let patientIds = [];
 function loadCSVData() {
   return new Promise((resolve, reject) => {
     let rowCount = 0;
+    let stream;
+    let hrCount = 0, spo2Count = 0, mapCount = 0;
     
-    fs.createReadStream(CSV_FILE)
+    console.log('Starting CSV stream...');
+    
+    stream = fs.createReadStream(CSV_FILE)
       .pipe(csv())
       .on('data', (row) => {
         rowCount++;
         
+        if (rowCount % 10000 === 0) {
+          console.log(`Processed ${rowCount} rows... HR: ${hrCount}, SpO2: ${spo2Count}, MAP: ${mapCount}`);
+        }
+        
+        // Stop reading after MAX_ROWS to prevent memory issues
+        if (rowCount >= MAX_ROWS) {
+          console.log(`Reached MAX_ROWS limit of ${MAX_ROWS}`);
+          stream.pause();
+          stream.destroy();
+          
+          // Manually trigger completion
+          setTimeout(() => {
+            patientIds = Object.keys(vitalsBySubject).filter(id => {
+              const vitals = vitalsBySubject[id];
+              return vitals.heartRate !== null && vitals.spO2 !== null;
+            });
+            
+            console.log(`CSV file loaded successfully. Processed rows: ${MAX_ROWS}`);
+            console.log(`Total unique subjects found: ${Object.keys(vitalsBySubject).length}`);
+            console.log(`Patients with complete vital signs (HR + SpO2): ${patientIds.length}`);
+            
+            if (patientIds.length > 0) {
+              const sample = vitalsBySubject[patientIds[0]];
+              console.log(`Sample data - HR: ${sample.heartRate}, SpO2: ${sample.spO2}, MAP: ${sample.map}`);
+            }
+            
+            resolve();
+          }, 100);
+          return;
+        }
+        
         // Get subject ID and label ID
-        const subjectId = row.SUBJECT_ID || row.subject_id;
-        const itemId = row.ITEMID || row.itemid || row.LABEL_ID;
-        const value = parseFloat(row.VALUENUM || row.valuenum || row.VALUE);
-        const chartTime = row.CHARTTIME || row.charttime || row.timestamp;
+        const subjectId = row.subject_id || row.SUBJECT_ID;
+        const itemId = row.itemid || row.ITEMID || row.LABEL_ID;
+        const value = parseFloat(row.valuenum || row.VALUENUM || row.VALUE);
+        const chartTime = row.charttime || row.CHARTTIME || row.timestamp;
         
         if (!subjectId || !itemId || isNaN(value)) {
           return;
@@ -52,12 +88,15 @@ function loadCSVData() {
         if (itemId === HEART_RATE_LABEL) {
           vitalsBySubject[subjectId].heartRate = value;
           vitalsBySubject[subjectId].timestamp = chartTime;
+          hrCount++;
         } else if (itemId === SPO2_LABEL) {
           vitalsBySubject[subjectId].spO2 = value;
           vitalsBySubject[subjectId].timestamp = chartTime;
+          spo2Count++;
         } else if (itemId === MAP_LABEL) {
           vitalsBySubject[subjectId].map = value;
           vitalsBySubject[subjectId].timestamp = chartTime;
+          mapCount++;
         }
       })
       .on('end', () => {
@@ -67,12 +106,38 @@ function loadCSVData() {
           return vitals.heartRate !== null && vitals.spO2 !== null;
         });
         
-        console.log(`CSV file loaded successfully. Total rows: ${rowCount}`);
-        console.log(`Found ${patientIds.length} patients with complete vital signs`);
+        console.log(`CSV file loaded successfully. Processed rows: ${Math.min(rowCount, MAX_ROWS)}`);
+        console.log(`Total unique subjects found: ${Object.keys(vitalsBySubject).length}`);
+        console.log(`Patients with complete vital signs (HR + SpO2): ${patientIds.length}`);
+        
+        if (patientIds.length > 0) {
+          const sample = vitalsBySubject[patientIds[0]];
+          console.log(`Sample data - HR: ${sample.heartRate}, SpO2: ${sample.spO2}, MAP: ${sample.map}`);
+        }
+        
         resolve();
       })
       .on('error', (error) => {
-        reject(error);
+        if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
+          // Stream was intentionally destroyed after MAX_ROWS
+          patientIds = Object.keys(vitalsBySubject).filter(id => {
+            const vitals = vitalsBySubject[id];
+            return vitals.heartRate !== null && vitals.spO2 !== null;
+          });
+          
+          console.log(`CSV file loaded successfully. Processed rows: ${MAX_ROWS}`);
+          console.log(`Total unique subjects found: ${Object.keys(vitalsBySubject).length}`);
+          console.log(`Patients with complete vital signs (HR + SpO2): ${patientIds.length}`);
+          
+          if (patientIds.length > 0) {
+            const sample = vitalsBySubject[patientIds[0]];
+            console.log(`Sample data - HR: ${sample.heartRate}, SpO2: ${sample.spO2}, MAP: ${sample.map}`);
+          }
+          
+          resolve();
+        } else {
+          reject(error);
+        }
       });
   });
 }
