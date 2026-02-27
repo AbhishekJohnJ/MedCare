@@ -206,26 +206,26 @@ async function ingestData() {
     return;
   }
 
-  console.log(`\n--- Ingesting ${RECORDS_PER_BATCH} records at ${new Date().toLocaleTimeString()} ---`);
+  const totalRecords = patientIds.length * RECORDS_PER_BATCH;
+  console.log(`\n--- Ingesting ${totalRecords} records (${RECORDS_PER_BATCH} per patient) at ${new Date().toLocaleTimeString()} ---`);
   
-  for (let i = 0; i < RECORDS_PER_BATCH; i++) {
-    // Get current patient and cycle through data
-    const subjectId = patientIds[currentIndex];
-    currentIndex = (currentIndex + 1) % patientIds.length;
-
-    try {
-      const vitalsData = createVitalsData(subjectId);
-      const response = await axios.post(API_URL, vitalsData);
-      
-      const riskIcon = response.data.predictedEvent === 'High Risk' ? '🔴' : '🟢';
-      
-      console.log(`${riskIcon} Subject ${subjectId}: HR=${vitalsData.heartRate}, SpO2=${vitalsData.spO2}%, MAP=${vitalsData.meanArterialPressure} | Risk: ${response.data.predictedEvent} (${response.data.riskScore})`);
-      
-      // Small delay between records to avoid overwhelming the server
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-    } catch (error) {
-      console.error(`❌ Error ingesting data for subject ${subjectId}:`, error.message);
+  // Add 5 records for EACH patient
+  for (const subjectId of patientIds) {
+    for (let i = 0; i < RECORDS_PER_BATCH; i++) {
+      try {
+        const vitalsData = createVitalsData(subjectId);
+        const response = await axios.post(API_URL, vitalsData);
+        
+        const riskIcon = response.data.predictedEvent === 'High Risk' ? '🔴' : '🟢';
+        
+        console.log(`${riskIcon} Subject ${subjectId}: HR=${vitalsData.heartRate}, SpO2=${vitalsData.spO2}%, MAP=${vitalsData.meanArterialPressure} | Risk: ${response.data.predictedEvent} (${response.data.riskScore})`);
+        
+        // Small delay between records to avoid overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
+      } catch (error) {
+        console.error(`❌ Error ingesting data for subject ${subjectId}:`, error.message);
+      }
     }
   }
 }
@@ -244,8 +244,9 @@ async function startIngestion() {
     }
     
     console.log('Starting data ingestion...');
-    console.log(`Posting ${RECORDS_PER_BATCH} records every ${INTERVAL / 1000} seconds to ${API_URL}`);
+    console.log(`Posting ${RECORDS_PER_BATCH} records per patient every ${INTERVAL / 1000} seconds to ${API_URL}`);
     console.log(`Found ${patientIds.length} unique subjects with complete vitals`);
+    console.log(`Total records per cycle: ${patientIds.length * RECORDS_PER_BATCH}`);
     console.log(`Each subject will have varied vital signs for realistic risk assessment\n`);
     
     // Ingest first batch immediately

@@ -34,6 +34,7 @@ function Dashboard() {
   const [lastUpdateTime, setLastUpdateTime] = useState(new Date())
   const [patients, setPatients] = useState([])
   const [selectedPatient, setSelectedPatient] = useState('all') // 'all' or specific patient ID
+  const [isPaused, setIsPaused] = useState(false) // Pause/Resume live updates
 
   // Fetch data from MongoDB with pagination
   const fetchVitalsData = async (page = 1, showLoader = true, append = false) => {
@@ -46,8 +47,8 @@ function Dashboard() {
       }
       
       const patientFilter = selectedPatient !== 'all' ? `&patientId=${selectedPatient}` : '';
-      const response = await fetch(`http://localhost:3000/api/vitals?page=${page}&limit=100${patientFilter}`)
-      const result = await response.json()
+      const vitalsResponse = await fetch(`http://localhost:3000/api/vitals?page=${page}&limit=100${patientFilter}`)
+      const result = await vitalsResponse.json()
       
       if (result.data && result.pagination) {
         if (append) {
@@ -59,8 +60,29 @@ function Dashboard() {
         }
         setPagination(result.pagination)
         setHasMore(result.pagination.hasNextPage)
-        updateStats(result.data, result.pagination.totalRecords)
         setCurrentPage(page)
+        
+        // Fetch stats separately
+        try {
+          const statsResponse = await fetch(`http://localhost:3000/api/stats?${selectedPatient !== 'all' ? `patientId=${selectedPatient}` : ''}`)
+          const statsData = await statsResponse.json()
+          setStats(statsData)
+        } catch (statsError) {
+          console.error('Error fetching stats, using fallback:', statsError)
+          // Fallback: calculate stats from current data
+          const uniquePatients = new Set(result.data.map(d => d.patientId)).size
+          const avgHR = result.data.length > 0 
+            ? result.data.reduce((sum, d) => sum + (d.heartRate || 0), 0) / result.data.length 
+            : 0
+          const criticalCount = result.data.filter(d => d.predictedEvent === 'High Risk').length
+          
+          setStats({
+            totalPatients: uniquePatients,
+            totalRecords: result.pagination.totalRecords,
+            avgHeartRate: avgHR.toFixed(1),
+            criticalAlerts: criticalCount
+          })
+        }
       }
       
       if (showLoader) {
@@ -110,12 +132,18 @@ function Dashboard() {
 
   useEffect(() => {
     fetchPatients() // Fetch patient list on mount
-    fetchVitalsData(currentPage, true) // Show loader on initial load
   }, [])
 
   useEffect(() => {
+    // When patient filter or view mode changes, reset and fetch new data
+    setVitalsData([])
+    setCurrentPage(1)
+    fetchVitalsData(1, true, false)
+  }, [selectedPatient, viewMode])
+
+  useEffect(() => {
     // Live mode: Auto-refresh every second, replacing old data
-    if (viewMode === 'live') {
+    if (viewMode === 'live' && !isPaused) {
       const interval = setInterval(() => {
         fetchVitalsData(1, false, false) // Always fetch page 1 in live mode
         setLastUpdateTime(new Date())
@@ -123,29 +151,13 @@ function Dashboard() {
       
       return () => clearInterval(interval)
     }
-  }, [viewMode, selectedPatient]) // Re-run when patient filter changes
+  }, [viewMode, selectedPatient, isPaused]) // Re-run when patient filter or pause state changes
 
   const deleteRecord = async (id) => {
     // For now, just remove from local state
     // You can add a DELETE endpoint later
     const newData = vitalsData.filter(record => record._id !== id)
     setVitalsData(newData)
-    updateStats(newData)
-  }
-
-  const updateStats = (data, totalRecords = null) => {
-    const uniquePatients = new Set(data.map(d => d.patientId)).size
-    const avgHR = data.length > 0 
-      ? data.reduce((sum, d) => sum + (d.heartRate || 0), 0) / data.length 
-      : 0
-    const criticalCount = data.filter(d => d.predictedEvent === 'High Risk').length
-    
-    setStats({
-      totalPatients: uniquePatients,
-      totalRecords: data.length,
-      avgHeartRate: avgHR.toFixed(1),
-      criticalAlerts: criticalCount
-    })
   }
 
   const loadCSVData = async () => {
@@ -294,6 +306,39 @@ function Dashboard() {
             <h1 className="navbar-title">Medical Dashboard</h1>
           </div>
           <div className="navbar-right">
+            {viewMode === 'live' && (
+              <button 
+                onClick={() => setIsPaused(!isPaused)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  border: '2px solid',
+                  borderColor: isPaused ? '#10b981' : '#ff4444',
+                  background: isPaused ? '#10b981' : '#ff4444',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginRight: '15px',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {isPaused ? (
+                  <>
+                    <span style={{ fontSize: '16px' }}>▶️</span>
+                    Resume Live Updates
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: '16px' }}>⏸️</span>
+                    Pause Live Updates
+                  </>
+                )}
+              </button>
+            )}
             <div className="navbar-item notification">
               <FiBell size={20} />
               <span className="badge">{stats.criticalAlerts}</span>
@@ -306,24 +351,60 @@ function Dashboard() {
           <div className="content-section">
             {viewMode === 'live' && (
               <div style={{ 
-                background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
+                background: isPaused 
+                  ? 'linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)'
+                  : 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
                 padding: '15px',
                 borderRadius: '12px',
                 marginBottom: '20px',
-                border: '2px solid rgba(255, 68, 68, 0.3)',
+                border: isPaused ? '2px solid rgba(255, 165, 0, 0.3)' : '2px solid rgba(255, 68, 68, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <span style={{ fontSize: '24px' }}>🔴</span>
+                <span style={{ fontSize: '24px' }}>{isPaused ? '⏸️' : '🔴'}</span>
                 <div>
-                  <strong style={{ color: '#ff4444' }}>LIVE MONITORING MODE</strong>
+                  <strong style={{ color: isPaused ? '#ff9800' : '#ff4444' }}>
+                    {isPaused ? 'LIVE MONITORING PAUSED' : 'LIVE MONITORING MODE'}
+                  </strong>
                   <p style={{ margin: 0, fontSize: '14px', color: '#5a5278' }}>
-                    Showing latest readings • Updates every second • Switch to History to view all records
+                    {isPaused 
+                      ? 'Data updates paused • Click Resume to continue monitoring'
+                      : 'Showing latest readings • Updates every second • Switch to History to view all records'
+                    }
                   </p>
                 </div>
               </div>
             )}
+            
+            {/* Subject Filter */}
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ fontWeight: '600', color: '#5a5278' }}>Filter by Subject:</label>
+              <select 
+                value={selectedPatient}
+                onChange={(e) => {
+                  setSelectedPatient(e.target.value)
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '2px solid #e8e3fa',
+                  background: 'white',
+                  color: '#5a5278',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">👥 All Subjects</option>
+                {patients.map(patient => (
+                  <option key={patient.id} value={patient.id}>
+                    {patient.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
             {/* Stats Cards */}
             <div className="stats-grid">
               <div className="stat-card">
@@ -343,47 +424,9 @@ function Dashboard() {
               <div className="stat-card">
                 <div className="stat-icon"><IoMdHeart size={40} color="#8b7fc7" /></div>
                 <div className="stat-info">
-                  <p className="stat-label">Avg Value</p>
-                  <p className="stat-value">{stats.avgHeartRate}</p>
+                  <p className="stat-label">Avg Heart Rate</p>
+                  <p className="stat-value">{stats.avgHeartRate} bpm</p>
                 </div>
-              </div>
-            </div>
-
-            <div className="chart-grid">
-              <div className="chart-card">
-                <h3>Patient Records Distribution</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={getPatientDistribution()}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
-                    <XAxis dataKey="patient" stroke="#6d5fa3" />
-                    <YAxis stroke="#6d5fa3" />
-                    <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
-                    <Bar dataKey="records" fill="#8b7fc7" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="chart-card">
-                <h3>Value Distribution</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={getValueDistribution()}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {getValueDistribution().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
-                  </PieChart>
-                </ResponsiveContainer>
               </div>
             </div>
           </div>
@@ -401,9 +444,6 @@ function Dashboard() {
                     value={selectedPatient}
                     onChange={(e) => {
                       setSelectedPatient(e.target.value)
-                      setVitalsData([])
-                      setCurrentPage(1)
-                      fetchVitalsData(1, true, false)
                     }}
                     style={{
                       padding: '8px 12px',
@@ -427,29 +467,19 @@ function Dashboard() {
                   {/* View Mode Buttons */}
                   <button 
                     className={`view-mode-btn ${viewMode === 'live' ? 'active' : ''}`}
-                    onClick={() => {
-                      setViewMode('live')
-                      setVitalsData([])
-                      setCurrentPage(1)
-                      fetchVitalsData(1, true, false)
-                    }}
+                    onClick={() => setViewMode('live')}
                   >
                     🔴 Live Monitor
                   </button>
                   <button 
                     className={`view-mode-btn ${viewMode === 'infinite' ? 'active' : ''}`}
-                    onClick={() => {
-                      setViewMode('infinite')
-                      setVitalsData([])
-                      setCurrentPage(1)
-                      fetchVitalsData(1, true, false)
-                    }}
+                    onClick={() => setViewMode('infinite')}
                   >
                     📜 History (Infinite Scroll)
                   </button>
                   {viewMode === 'live' && (
-                    <span style={{ color: '#8b7fc7', fontSize: '12px', fontWeight: '600' }}>
-                      🔄 Last update: {lastUpdateTime.toLocaleTimeString()}
+                    <span style={{ color: isPaused ? '#ff9800' : '#8b7fc7', fontSize: '12px', fontWeight: '600' }}>
+                      {isPaused ? '⏸️ Paused' : `🔄 Last update: ${lastUpdateTime.toLocaleTimeString()}`}
                     </span>
                   )}
                 </div>
@@ -510,20 +540,27 @@ function Dashboard() {
           <div className="content-section">
             {viewMode === 'live' && (
               <div style={{ 
-                background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
+                background: isPaused 
+                  ? 'linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)'
+                  : 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
                 padding: '15px',
                 borderRadius: '12px',
                 marginBottom: '20px',
-                border: '2px solid rgba(255, 68, 68, 0.3)',
+                border: isPaused ? '2px solid rgba(255, 165, 0, 0.3)' : '2px solid rgba(255, 68, 68, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <span style={{ fontSize: '24px' }}>🔴</span>
+                <span style={{ fontSize: '24px' }}>{isPaused ? '⏸️' : '🔴'}</span>
                 <div>
-                  <strong style={{ color: '#ff4444' }}>LIVE ANALYTICS</strong>
+                  <strong style={{ color: isPaused ? '#ff9800' : '#ff4444' }}>
+                    {isPaused ? 'LIVE ANALYTICS PAUSED' : 'LIVE ANALYTICS'}
+                  </strong>
                   <p style={{ margin: 0, fontSize: '14px', color: '#5a5278' }}>
-                    Real-time data visualization • Updates every second
+                    {isPaused 
+                      ? 'Data updates paused • Click Resume to continue'
+                      : 'Real-time data visualization • Updates every second'
+                    }
                   </p>
                 </div>
               </div>
@@ -549,20 +586,27 @@ function Dashboard() {
           <div className="content-section">
             {viewMode === 'live' && (
               <div style={{ 
-                background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
+                background: isPaused 
+                  ? 'linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)'
+                  : 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
                 padding: '15px',
                 borderRadius: '12px',
                 marginBottom: '20px',
-                border: '2px solid rgba(255, 68, 68, 0.3)',
+                border: isPaused ? '2px solid rgba(255, 165, 0, 0.3)' : '2px solid rgba(255, 68, 68, 0.3)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <span style={{ fontSize: '24px' }}>🔴</span>
+                <span style={{ fontSize: '24px' }}>{isPaused ? '⏸️' : '🔴'}</span>
                 <div>
-                  <strong style={{ color: '#ff4444' }}>LIVE ALERT MONITORING</strong>
+                  <strong style={{ color: isPaused ? '#ff9800' : '#ff4444' }}>
+                    {isPaused ? 'LIVE ALERT MONITORING PAUSED' : 'LIVE ALERT MONITORING'}
+                  </strong>
                   <p style={{ margin: 0, fontSize: '14px', color: '#5a5278' }}>
-                    Real-time critical alerts • AI analysis active • Updates every second
+                    {isPaused 
+                      ? 'Alert monitoring paused • Click Resume to continue'
+                      : 'Real-time critical alerts • AI analysis active • Updates every second'
+                    }
                   </p>
                 </div>
               </div>

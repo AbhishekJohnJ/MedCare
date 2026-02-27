@@ -210,6 +210,33 @@ app.get('/api/patients', async (req, res) => {
   }
 });
 
+// GET route to retrieve statistics
+app.get('/api/stats', async (req, res) => {
+  try {
+    const patientId = req.query.patientId;
+    const query = patientId ? { patientId } : {};
+    
+    const [totalRecords, uniquePatients, avgHeartRate, criticalAlerts] = await Promise.all([
+      PatientVital.countDocuments(query),
+      patientId ? Promise.resolve(1) : PatientVital.distinct('patientId').then(p => p.filter(id => id !== null).length),
+      PatientVital.aggregate([
+        { $match: query },
+        { $group: { _id: null, avgHR: { $avg: '$heartRate' } } }
+      ]).then(result => result[0]?.avgHR || 0),
+      PatientVital.countDocuments({ ...query, predictedEvent: 'High Risk' })
+    ]);
+    
+    res.json({
+      totalPatients: uniquePatients,
+      totalRecords,
+      avgHeartRate: avgHeartRate.toFixed(1),
+      criticalAlerts
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET route to retrieve ALL patient vitals (no limit)
 app.get('/api/vitals/all', async (req, res) => {
   try {
