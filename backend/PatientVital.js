@@ -20,6 +20,12 @@ const patientVitalSchema = new mongoose.Schema({
   spO2: {
     type: Number,
     required: true
+  },
+  riskScore: {
+    type: Number
+  },
+  predictedEvent: {
+    type: String
   }
 });
 

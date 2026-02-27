@@ -31,10 +31,34 @@ app.get('/', (req, res) => {
   res.json({ message: 'Server is running' });
 });
 
+// Risk assessment logic function
+function assessRisk(heartRate, spO2) {
+  if (heartRate > 100 || spO2 < 90) {
+    return {
+      riskScore: 0.8,
+      predictedEvent: 'High Risk'
+    };
+  }
+  return {
+    riskScore: 0.2,
+    predictedEvent: 'Low Risk'
+  };
+}
+
 // POST route to save patient vitals
 app.post('/api/vitals', async (req, res) => {
   try {
-    const vital = new PatientVital(req.body);
+    const { heartRate, spO2 } = req.body;
+    
+    // Calculate risk assessment
+    const riskAssessment = assessRisk(heartRate, spO2);
+    
+    // Create vital record with risk assessment
+    const vital = new PatientVital({
+      ...req.body,
+      ...riskAssessment
+    });
+    
     await vital.save();
     res.status(201).json(vital);
   } catch (error) {
