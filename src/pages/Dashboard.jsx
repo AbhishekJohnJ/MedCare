@@ -160,7 +160,7 @@ function Dashboard() {
         
         <div className="sidebar-header">
           <div className="logo">
-            <img src="/logo.png" alt="MediCare Logo" />
+            <img src="/heartbloom_erased.png" alt="MediCare Logo" />
           </div>
           {sidebarOpen && (
             <>
