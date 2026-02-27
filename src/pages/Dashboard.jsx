@@ -558,6 +558,109 @@ function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* High Risk Patients Section */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(255, 68, 68, 0.05) 0%, rgba(255, 152, 0, 0.05) 100%)',
+              border: '2px solid #ff4444',
+              borderRadius: '12px',
+              padding: '20px',
+              marginTop: '20px',
+              boxShadow: '0 4px 12px rgba(255, 68, 68, 0.15)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+                <MdWarning size={28} color="#ff4444" />
+                <h3 style={{ margin: 0, color: '#ff4444', fontSize: '20px' }}>High Risk Patients - Immediate Attention Required</h3>
+              </div>
+              
+              {vitalsData.filter(r => r.predictedEvent === 'High Risk').length > 0 ? (
+                <div style={{ 
+                  background: 'white', 
+                  borderRadius: '8px', 
+                  padding: '15px',
+                  maxHeight: '500px',
+                  overflowY: 'auto'
+                }}>
+                  <table className="data-table" style={{ border: '2px solid #ff4444' }}>
+                    <thead style={{ background: '#ff4444', color: 'white' }}>
+                      <tr>
+                        <th>Patient ID</th>
+                        <th>Latest Alert Time</th>
+                        <th>Heart Rate</th>
+                        <th>SpO2</th>
+                        <th>MAP</th>
+                        <th>Risk Score</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        // Get unique patients with their latest high-risk record
+                        const highRiskRecords = vitalsData.filter(r => r.predictedEvent === 'High Risk');
+                        const uniquePatients = {};
+                        
+                        highRiskRecords.forEach(record => {
+                          if (!uniquePatients[record.patientId] || 
+                              new Date(record.timestamp) > new Date(uniquePatients[record.patientId].timestamp)) {
+                            uniquePatients[record.patientId] = record;
+                          }
+                        });
+                        
+                        return Object.values(uniquePatients).map((record) => (
+                          <tr key={record._id} style={{ background: 'rgba(255, 68, 68, 0.05)' }}>
+                            <td style={{ fontWeight: '700', color: '#ff4444' }}>{record.patientId}</td>
+                            <td>{new Date(record.timestamp).toLocaleString()}</td>
+                            <td style={{ 
+                              fontWeight: '700',
+                              color: record.heartRate > 100 ? '#ff4444' : '#5a5278'
+                            }}>
+                              {record.heartRate} bpm
+                            </td>
+                            <td style={{ 
+                              fontWeight: '700',
+                              color: record.spO2 < 90 ? '#ff4444' : '#5a5278'
+                            }}>
+                              {record.spO2}%
+                            </td>
+                            <td>{record.meanArterialPressure || '-'} mmHg</td>
+                            <td style={{ fontWeight: '700', color: '#ff4444' }}>
+                              {record.riskScore?.toFixed(2) || '-'}
+                            </td>
+                            <td>
+                              <span style={{
+                                background: '#ff4444',
+                                color: 'white',
+                                padding: '4px 12px',
+                                borderRadius: '20px',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}>
+                                <MdWarning size={14} />
+                                HIGH RISK
+                              </span>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '40px',
+                  color: '#10b981',
+                  fontSize: '18px',
+                  fontWeight: '600'
+                }}>
+                  <FiActivity size={48} color="#10b981" style={{ marginBottom: '10px' }} />
+                  <p>No high-risk patients detected. All vitals within normal range.</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
