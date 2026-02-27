@@ -474,13 +474,13 @@ function Dashboard() {
                     className={`view-mode-btn ${viewMode === 'live' ? 'active' : ''}`}
                     onClick={() => setViewMode('live')}
                   >
-                    <BsCircleFill size={12} style={{ marginRight: '5px' }} /> Live Monitor
+                     Live Monitor
                   </button>
                   <button 
                     className={`view-mode-btn ${viewMode === 'infinite' ? 'active' : ''}`}
                     onClick={() => setViewMode('infinite')}
                   >
-                    <BsFileText size={14} style={{ marginRight: '5px' }} /> History (Infinite Scroll)
+                     History
                   </button>
                   {viewMode === 'live' && (
                     <span style={{ color: isPaused ? '#ff9800' : '#8b7fc7', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}>
