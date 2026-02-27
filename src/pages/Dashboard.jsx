@@ -6,6 +6,9 @@ import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiPlus, FiTrash2,
 import { IoMdPeople, IoMdDocument, IoMdHeart } from 'react-icons/io'
 import { MdWarning } from 'react-icons/md'
 import { BsCircleFill, BsFileText } from 'react-icons/bs'
+import AIChat from '../components/AIChat'
+import AIPredictions from '../components/AIPredictions'
+import AlertHistoryTab from '../components/AlertHistoryTab'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -286,6 +289,13 @@ function Dashboard() {
             <FiBell size={18} /> {sidebarOpen && 'Alerts'}
           </button>
           <button 
+            className={activeTab === 'alert-history' ? 'active' : ''} 
+            onClick={() => setActiveTab('alert-history')}
+            title="Alert History"
+          >
+            <FiBell size={18} /> {sidebarOpen && 'Alert History'}
+          </button>
+          <button 
             className={activeTab === 'ai-mode' ? 'active' : ''} 
             onClick={() => setActiveTab('ai-mode')}
             title="AI Mode"
@@ -434,6 +444,28 @@ function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* AI Continuous Monitoring Predictions - Only for specific patient */}
+            {selectedPatient !== 'all' && (
+              <AIPredictions vitalsData={vitalsData} patients={patients} selectedPatient={selectedPatient} />
+            )}
+
+            {selectedPatient === 'all' && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(139, 127, 199, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%)',
+                border: '2px solid #8b7fc7',
+                borderRadius: '12px',
+                padding: 30,
+                marginTop: 20,
+                textAlign: 'center'
+              }}>
+                <FiActivity size={48} color="#8b7fc7" style={{ marginBottom: 15 }} />
+                <h3 style={{ color: '#4a3f6f', marginBottom: 10 }}>AI Risk Prediction</h3>
+                <p style={{ color: '#6d5fa3', fontSize: 16 }}>
+                  Select a specific patient from the dropdown above to see AI-powered risk analysis and predictions
+                </p>
+              </div>
+            )}
 
             {/* High Risk Patients Section */}
             <div style={{
@@ -778,14 +810,20 @@ function Dashboard() {
           </div>
         )}
 
+        {activeTab === 'alert-history' && (
+          <div className="content-section">
+            <AlertHistoryTab />
+          </div>
+        )}
+
         {activeTab === 'ai-mode' && (
           <div className="content-section">
             <div className="ai-mode-header">
               <h2>AI-Powered Patient Analysis</h2>
-              <p>Advanced machine learning insights for patient care</p>
+              <p>Ask questions about patient vitals, risk predictions, and health trends</p>
             </div>
 
-            <div className="stats-grid">
+            <div className="stats-grid" style={{ marginBottom: '20px' }}>
               <div className="stat-card">
                 <FiActivity size={32} color="#8b7fc7" />
                 <h3>AI Predictions</h3>
@@ -794,9 +832,9 @@ function Dashboard() {
               </div>
               <div className="stat-card">
                 <FiTrendingUp size={32} color="#10b981" />
-                <h3>Accuracy Rate</h3>
-                <p className="stat-value">94.5%</p>
-                <p className="stat-label">Model Performance</p>
+                <h3>Active Patients</h3>
+                <p className="stat-value">{patients.length}</p>
+                <p className="stat-label">Being Monitored</p>
               </div>
               <div className="stat-card">
                 <MdWarning size={32} color="#ff4444" />
@@ -806,49 +844,25 @@ function Dashboard() {
               </div>
             </div>
 
-            <div className="chart-card full-width">
-              <h3>AI Risk Assessment Distribution</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Low Risk', value: vitalsData.filter(r => r.predictedEvent === 'Low Risk').length },
-                      { name: 'High Risk', value: vitalsData.filter(r => r.predictedEvent === 'High Risk').length }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {[
-                      { name: 'Low Risk', value: vitalsData.filter(r => r.predictedEvent === 'Low Risk').length },
-                      { name: 'High Risk', value: vitalsData.filter(r => r.predictedEvent === 'High Risk').length }
-                    ].map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#ff4444'} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <AIChat patients={patients} vitalsData={vitalsData} />
 
-            <div className="ai-insights-card">
-              <h3>AI-Generated Insights</h3>
+            <div className="ai-insights-card" style={{ marginTop: '20px' }}>
+              <h3>Example Questions You Can Ask:</h3>
               <div className="insight-item">
                 <FiActivity size={20} color="#8b7fc7" />
-                <p>Machine learning model has analyzed {vitalsData.length} patient records with high accuracy</p>
+                <p>"What is the current status of patient 10005348?"</p>
               </div>
               <div className="insight-item">
                 <FiTrendingUp size={20} color="#10b981" />
-                <p>Risk prediction algorithm identifies patterns in heart rate and SpO2 levels</p>
+                <p>"Which patients are currently at high risk?"</p>
               </div>
               <div className="insight-item">
                 <MdWarning size={20} color="#ff4444" />
-                <p>{stats.criticalAlerts} patients flagged as high risk requiring immediate attention</p>
+                <p>"Analyze the vital signs trends for all patients"</p>
+              </div>
+              <div className="insight-item">
+                <FiUsers size={20} color="#8b7fc7" />
+                <p>"What are the average vital signs across all patients?"</p>
               </div>
             </div>
           </div>

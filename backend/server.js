@@ -4,8 +4,10 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const jwt = require('jsonwebtoken');
+const fetch = require('node-fetch');
 const PatientVital = require('./PatientVital');
 const User = require('./User');
+const AlertHistory = require('./AlertHistory');
 
 // Load environment variables from root .env file
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
@@ -232,6 +234,227 @@ app.get('/api/stats', async (req, res) => {
       avgHeartRate: avgHeartRate.toFixed(1),
       criticalAlerts
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ AI CHAT ROUTES ============
+
+// POST route for AI chat
+app.post('/api/ai/chat', async (req, res) => {
+  try {
+    const { message, context } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || 'rc_9984ee6b5690248a5ad167873c38cefea004c1614efec9c9bb8dfe434a58dc03';
+
+    const systemPrompt = `You are an AI medical assistant analyzing patient vital signs data. You help healthcare professionals understand patient conditions, predict high-risk cases, and provide insights.
+
+Key Guidelines:
+- Analyze heart rate (normal: 60-100 bpm), SpO2 (normal: 95-100%), and MAP (normal: 70-100 mmHg)
+- High risk is defined as: Heart Rate > 100 bpm OR SpO2 < 90%
+- Provide clear, concise medical insights
+- Highlight urgent cases that need immediate attention
+- Use the provided patient data context to give accurate answers
+- Be professional and empathetic
+
+${context ? 'Current Patient Data:\n' + context : ''}`;
+
+    const response = await fetch('https://api.featherless.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${FEATHERLESS_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Featherless API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content || 'I apologize, but I could not generate a response.';
+
+    res.json({ response: aiResponse });
+  } catch (error) {
+    console.error('AI Chat error:', error);
+    res.status(500).json({ error: 'Failed to get AI response', details: error.message });
+  }
+});
+
+// POST route for AI risk prediction
+app.post('/api/ai/predict-risk', async (req, res) => {
+  try {
+    const { patientData } = req.body;
+
+    if (!patientData) {
+      return res.status(400).json({ error: 'Patient data is required' });
+    }
+
+    const FEATHERLESS_API_KEY = process.env.FEATHERLESS_API_KEY || 'rc_9984ee6b5690248a5ad167873c38cefea004c1614efec9c9bb8dfe434a58dc03';
+
+    const systemPrompt = `You are an AI cardiac risk assessment specialist. Analyze patient vital signs data to predict future heart risk based on subtle changes and trends.
+
+Your task:
+1. Analyze the patient's vital signs trends (heart rate, SpO2, MAP)
+2. Identify subtle changes that might indicate future cardiac risk
+3. Assess variability in vital signs (high variability can indicate instability)
+4. Provide a risk level: CRITICAL, HIGH, MODERATE, or LOW
+5. List specific concerns detected
+6. Provide actionable recommendations
+
+Patient Data:
+${JSON.stringify(patientData, null, 2)}
+
+Respond in JSON format:
+{
+  "riskLevel": "HIGH|MODERATE|LOW|CRITICAL",
+  "prediction": "Brief prediction summary (1-2 sentences)",
+  "concerns": ["concern1", "concern2"],
+  "recommendations": ["recommendation1", "recommendation2"]
+}`;
+
+    const response = await fetch('https://api.featherless.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${FEATHERLESS_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: 'Analyze this patient data and provide risk assessment.' }
+        ],
+        max_tokens: 400,
+        temperature: 0.5
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Featherless API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content || '{}';
+
+    // Try to parse JSON response
+    let result;
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[0]);
+      } else {
+        // Fallback if AI doesn't return JSON
+        result = {
+          riskLevel: 'MODERATE',
+          prediction: aiResponse.substring(0, 200),
+          concerns: ['Unable to parse detailed analysis'],
+          recommendations: ['Continue monitoring vital signs']
+        };
+      }
+    } catch (parseError) {
+      result = {
+        riskLevel: 'MODERATE',
+        prediction: aiResponse.substring(0, 200),
+        concerns: ['Analysis in progress'],
+        recommendations: ['Continue monitoring']
+      };
+    }
+
+    // Save to alert history if HIGH or CRITICAL
+    if (result.riskLevel === 'HIGH' || result.riskLevel === 'CRITICAL') {
+      const alert = new AlertHistory({
+        patientId: patientData.patientId,
+        riskLevel: result.riskLevel,
+        prediction: result.prediction,
+        concerns: result.concerns || [],
+        recommendations: result.recommendations || [],
+        vitals: patientData.latestVitals,
+        trends: {
+          hrTrend: parseFloat(patientData.trends.heartRateTrend),
+          spo2Trend: parseFloat(patientData.trends.spO2Trend),
+          mapTrend: parseFloat(patientData.trends.mapTrend),
+          hrVariability: parseFloat(patientData.variability.heartRate),
+          spo2Variability: parseFloat(patientData.variability.spO2)
+        }
+      });
+      await alert.save();
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('AI Prediction error:', error);
+    res.status(500).json({ error: 'Failed to get AI prediction', details: error.message });
+  }
+});
+
+// ============ ALERT HISTORY ROUTES ============
+
+// GET all alert history
+app.get('/api/alerts/history', async (req, res) => {
+  try {
+    const { patientId, acknowledged } = req.query;
+    const query = {};
+    
+    if (patientId) query.patientId = patientId;
+    if (acknowledged !== undefined) query.acknowledged = acknowledged === 'true';
+    
+    const alerts = await AlertHistory.find(query)
+      .sort({ createdAt: -1 })
+      .limit(100);
+    
+    res.json(alerts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET unacknowledged alerts count
+app.get('/api/alerts/unacknowledged-count', async (req, res) => {
+  try {
+    const count = await AlertHistory.countDocuments({ acknowledged: false });
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST acknowledge alert
+app.post('/api/alerts/:id/acknowledge', async (req, res) => {
+  try {
+    const alert = await AlertHistory.findByIdAndUpdate(
+      req.params.id,
+      { acknowledged: true, acknowledgedAt: new Date() },
+      { new: true }
+    );
+    res.json(alert);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST acknowledge all alerts
+app.post('/api/alerts/acknowledge-all', async (req, res) => {
+  try {
+    const result = await AlertHistory.updateMany(
+      { acknowledged: false },
+      { acknowledged: true, acknowledgedAt: new Date() }
+    );
+    res.json({ modifiedCount: result.modifiedCount });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

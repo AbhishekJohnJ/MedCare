@@ -6,8 +6,8 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const API_URL = 'http://localhost:3000/api/vitals';
 const CSV_FILE = path.join(__dirname, 'chartevents.csv');
-const INTERVAL = 5000; // 5 seconds
-const RECORDS_PER_BATCH = 5; // Send 5 records every 5 seconds
+const INTERVAL = 30000; // 30 seconds
+const RECORDS_PER_BATCH = 1; // Send 1 record per patient every 30 seconds
 const MAX_ROWS = 50000; // Limit rows to prevent memory issues
 
 // Label IDs for vital signs (MIMIC-IV)
