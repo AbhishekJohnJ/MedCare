@@ -1,0 +1,246 @@
+.ai-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: #f9f7ff;
+  min-height: 100vh;
+}
+
+.ai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #f9f7ff;
+}
+
+.ai-loading .loader {
+  border: 4px solid #e5e7eb;
+  border-top: 4px solid #8b7fc7;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+.ai-loading p {
+  margin-top: 1rem;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ai-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.ai-header h1 {
+  color: #4a3f6f;
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.ai-header p {
+  color: #8b7fc7;
+  font-size: 1.2rem;
+}
+
+.ai-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.ai-stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ai-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.ai-stat-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ai-stat-content h3 {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.ai-stat-value {
+  color: #4a3f6f;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+.ai-stat-label {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.ai-chart-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+}
+
+.ai-chart-card h3 {
+  color: #4a3f6f;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.ai-insights-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 2rem;
+}
+
+.ai-insights-card h3 {
+  color: #4a3f6f;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.ai-insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: #f9f7ff;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  border-left: 4px solid #8b7fc7;
+  transition: transform 0.2s;
+}
+
+.ai-insight-item:hover {
+  transform: translateX(4px);
+}
+
+.ai-insight-item:last-child {
+  margin-bottom: 0;
+}
+
+.ai-insight-content h4 {
+  color: #4a3f6f;
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.ai-insight-content p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.ai-model-info {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.ai-model-info h3 {
+  color: #4a3f6f;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.ai-model-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.ai-model-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9f7ff;
+  border-radius: 8px;
+}
+
+.ai-model-label {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ai-model-value {
+  color: #4a3f6f;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .ai-container {
+    padding: 1rem;
+  }
+
+  .ai-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .ai-header p {
+    font-size: 1rem;
+  }
+
+  .ai-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-stat-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .ai-insight-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .ai-model-details {
+    grid-template-columns: 1fr;
+  }
+}

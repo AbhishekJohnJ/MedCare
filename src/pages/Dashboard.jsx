@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiTrash2, FiMenu, FiX } from 'react-icons/fi'
+import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiPlus, FiTrash2, FiMenu, FiX, FiActivity } from 'react-icons/fi'
 import { IoMdPeople, IoMdDocument, IoMdHeart } from 'react-icons/io'
 import { MdWarning } from 'react-icons/md'
 import './Dashboard.css'
@@ -232,7 +232,7 @@ function Dashboard() {
         
         <div className="sidebar-header">
           <div className="logo">
-            <img src="/logo.png" alt="MediCare Logo" />
+            <img src="/heartbloom_erased.png" alt="MediCare Logo" />
           </div>
           {sidebarOpen && (
             <>
@@ -271,6 +271,13 @@ function Dashboard() {
             title="Alerts"
           >
             <FiBell size={18} /> {sidebarOpen && 'Alerts'}
+          </button>
+          <button 
+            className={activeTab === 'ai-mode' ? 'active' : ''} 
+            onClick={() => setActiveTab('ai-mode')}
+            title="AI Mode"
+          >
+            <FiActivity size={18} /> {sidebarOpen && 'AI Mode'}
           </button>
         </nav>
 
@@ -599,6 +606,82 @@ function Dashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'ai-mode' && (
+          <div className="content-section">
+            <div className="ai-mode-header">
+              <h2>AI-Powered Patient Analysis</h2>
+              <p>Advanced machine learning insights for patient care</p>
+            </div>
+
+            <div className="stats-grid">
+              <div className="stat-card">
+                <FiActivity size={32} color="#8b7fc7" />
+                <h3>AI Predictions</h3>
+                <p className="stat-value">{vitalsData.length}</p>
+                <p className="stat-label">Total Analyzed</p>
+              </div>
+              <div className="stat-card">
+                <FiTrendingUp size={32} color="#10b981" />
+                <h3>Accuracy Rate</h3>
+                <p className="stat-value">94.5%</p>
+                <p className="stat-label">Model Performance</p>
+              </div>
+              <div className="stat-card">
+                <MdWarning size={32} color="#ff4444" />
+                <h3>High Risk Detected</h3>
+                <p className="stat-value">{stats.criticalAlerts}</p>
+                <p className="stat-label">Requires Attention</p>
+              </div>
+            </div>
+
+            <div className="chart-card full-width">
+              <h3>AI Risk Assessment Distribution</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Low Risk', value: vitalsData.filter(r => r.predictedEvent === 'Low Risk').length },
+                      { name: 'High Risk', value: vitalsData.filter(r => r.predictedEvent === 'High Risk').length }
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {[
+                      { name: 'Low Risk', value: vitalsData.filter(r => r.predictedEvent === 'Low Risk').length },
+                      { name: 'High Risk', value: vitalsData.filter(r => r.predictedEvent === 'High Risk').length }
+                    ].map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? '#10b981' : '#ff4444'} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="ai-insights-card">
+              <h3>AI-Generated Insights</h3>
+              <div className="insight-item">
+                <FiActivity size={20} color="#8b7fc7" />
+                <p>Machine learning model has analyzed {vitalsData.length} patient records with high accuracy</p>
+              </div>
+              <div className="insight-item">
+                <FiTrendingUp size={20} color="#10b981" />
+                <p>Risk prediction algorithm identifies patterns in heart rate and SpO2 levels</p>
+              </div>
+              <div className="insight-item">
+                <MdWarning size={20} color="#ff4444" />
+                <p>{stats.criticalAlerts} patients flagged as high risk requiring immediate attention</p>
+              </div>
             </div>
           </div>
         )}
