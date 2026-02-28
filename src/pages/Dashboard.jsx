@@ -1221,23 +1221,62 @@ function Dashboard() {
               <p>Ask questions about patient vitals, risk predictions, and health trends</p>
             </div>
 
-            <AIChat patients={patients} vitalsData={vitalsData} />
+            <AIChat 
+              patients={patients} 
+              vitalsData={vitalsData}
+              onQuestionClick={(setInputFn) => {
+                // Store the setInput function to use later
+                window.aiChatSetInput = setInputFn
+              }}
+            />
 
             <div className="ai-insights-card" style={{ marginTop: '20px' }}>
               <h3>Example Questions You Can Ask:</h3>
-              <div className="insight-item">
+              <div 
+                className="insight-item"
+                onClick={() => {
+                  const question = "What is the current status of patient 10005348?"
+                  if (window.aiChatSetInput) {
+                    window.aiChatSetInput(question)
+                  }
+                }}
+              >
                 <FiActivity size={20} color="#8b7fc7" />
                 <p>"What is the current status of patient 10005348?"</p>
               </div>
-              <div className="insight-item">
+              <div 
+                className="insight-item"
+                onClick={() => {
+                  const question = "Which patients are currently at high risk?"
+                  if (window.aiChatSetInput) {
+                    window.aiChatSetInput(question)
+                  }
+                }}
+              >
                 <FiTrendingUp size={20} color="#10b981" />
                 <p>"Which patients are currently at high risk?"</p>
               </div>
-              <div className="insight-item">
+              <div 
+                className="insight-item"
+                onClick={() => {
+                  const question = "Analyze the vital signs trends for all patients"
+                  if (window.aiChatSetInput) {
+                    window.aiChatSetInput(question)
+                  }
+                }}
+              >
                 <MdWarning size={20} color="#ff4444" />
                 <p>"Analyze the vital signs trends for all patients"</p>
               </div>
-              <div className="insight-item">
+              <div 
+                className="insight-item"
+                onClick={() => {
+                  const question = "What are the average vital signs across all patients?"
+                  if (window.aiChatSetInput) {
+                    window.aiChatSetInput(question)
+                  }
+                }}
+              >
                 <FiUsers size={20} color="#8b7fc7" />
                 <p>"What are the average vital signs across all patients?"</p>
               </div>

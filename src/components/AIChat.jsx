@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { FiSend, FiUser, FiCpu } from 'react-icons/fi'
 import './AIChat.css'
 
-function AIChat({ patients, vitalsData }) {
+function AIChat({ patients, vitalsData, onQuestionClick }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -12,6 +12,7 @@ function AIChat({ patients, vitalsData }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef(null)
+  const inputRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -20,6 +21,19 @@ function AIChat({ patients, vitalsData }) {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Expose setInput to parent component
+  useEffect(() => {
+    if (onQuestionClick) {
+      onQuestionClick((question) => {
+        setInput(question)
+        // Focus the input field
+        setTimeout(() => {
+          inputRef.current?.focus()
+        }, 100)
+      })
+    }
+  }, [onQuestionClick])
 
   const getPatientContext = (patientId) => {
     const patientRecords = vitalsData.filter(v => v.patientId === patientId)
@@ -174,6 +188,7 @@ function AIChat({ patients, vitalsData }) {
       
       <div className="chat-input-container">
         <input
+          ref={inputRef}
           type="text"
           className="chat-input"
           placeholder="Ask about patient vitals, risk predictions, or health trends..."
