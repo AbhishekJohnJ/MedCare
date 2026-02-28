@@ -214,6 +214,12 @@ function Dashboard() {
 
   const getAlertTimelineData = () => {
     const timeline = {}
+    
+    // Initialize all 24 hours with 0
+    for (let i = 0; i < 24; i++) {
+      timeline[i] = 0
+    }
+    
     const alerts = vitalsData.filter(r => r.predictedEvent === 'High Risk')
     alerts.forEach(record => {
       if (record.timestamp) {
@@ -221,6 +227,7 @@ function Dashboard() {
         timeline[hour] = (timeline[hour] || 0) + 1
       }
     })
+    
     return Object.entries(timeline).sort((a, b) => a[0] - b[0]).map(([hour, count]) => ({
       time: `${hour}:00`,
       alerts: count
