@@ -767,6 +767,34 @@ function Dashboard() {
                 </div>
               </div>
             )}
+            {/* Patient Filter */}
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ fontWeight: '600', color: '#5a5278' }}>Filter by Subject:</label>
+              <select 
+                value={selectedPatient}
+                onChange={(e) => {
+                  setSelectedPatient(e.target.value)
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '2px solid #e8e3fa',
+                  background: 'white',
+                  color: '#5a5278',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">All Subjects</option>
+                {patients.map(patient => (
+                  <option key={patient.id} value={patient.id}>
+                    {patient.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Critical Alerts Summary Card */}
             <div className="alert-summary-card">
               <div className="alert-summary-icon"><MdWarning size={80} color="white" /></div>
@@ -776,18 +804,61 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Alerts Chart */}
+            {/* Real-Time Alert Analysis Chart */}
             <div className="chart-card full-width">
-              <h3>Alert Trends Over Time</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3>Real-Time Alert Analysis</h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {viewMode === 'live' && !isPaused && (
+                    <span style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '5px',
+                      color: '#ff4444',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}>
+                      <BsCircleFill size={10} color="#ff4444" />
+                      Live Monitoring
+                    </span>
+                  )}
+                  <span style={{ fontSize: '12px', color: '#9d96bb' }}>
+                    Last updated: {lastUpdateTime.toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={getAlertTimelineData()}>
+                <LineChart data={getAlertTimelineData()}>
+                  <defs>
+                    <linearGradient id="alertGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ff4444" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#ff4444" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
                   <XAxis dataKey="time" stroke="#6d5fa3" />
                   <YAxis stroke="#6d5fa3" />
-                  <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      background: 'white', 
+                      border: '2px solid #ff4444', 
+                      borderRadius: '8px',
+                      color: '#4a3f6f' 
+                    }} 
+                  />
                   <Legend />
-                  <Bar dataKey="alerts" fill="#ff4444" name="Alert Count" />
-                </BarChart>
+                  <Line 
+                    type="monotone" 
+                    dataKey="alerts" 
+                    stroke="#ff4444" 
+                    strokeWidth={3}
+                    fill="url(#alertGradient)"
+                    fillOpacity={1}
+                    name="Alert Count"
+                    dot={{ fill: '#ff4444', strokeWidth: 2, r: 5 }}
+                    activeDot={{ r: 8 }}
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </div>
 
