@@ -652,16 +652,16 @@ function Dashboard() {
                   maxHeight: '500px',
                   overflowY: 'auto'
                 }}>
-                  <table className="data-table" style={{ border: '2px solid #ff4444' }}>
+                  <table className="data-table high-risk-table" style={{ border: '2px solid #ff4444' }}>
                     <thead style={{ background: '#ff4444', color: 'white' }}>
                       <tr>
-                        <th>Patient ID</th>
-                        <th>Latest Alert Time</th>
-                        <th>Heart Rate</th>
-                        <th>SpO2</th>
-                        <th>MAP</th>
-                        <th>Risk Score</th>
-                        <th>Status</th>
+                        <th style={{ color: 'white' }}>Patient ID</th>
+                        <th style={{ color: 'white' }}>Latest Alert Time</th>
+                        <th style={{ color: 'white' }}>Heart Rate</th>
+                        <th style={{ color: 'white' }}>SpO2</th>
+                        <th style={{ color: 'white' }}>MAP</th>
+                        <th style={{ color: 'white' }}>Risk Score</th>
+                        <th style={{ color: 'white' }}>Status</th>
                       </tr>
                     </thead>
                     <tbody>
