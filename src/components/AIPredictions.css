@@ -58,14 +58,14 @@
 
 .predictions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: 1fr;
   gap: 20px;
 }
 
 .prediction-card {
   background: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -76,7 +76,7 @@
 }
 
 .prediction-header {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .patient-info {
@@ -107,11 +107,11 @@
 .prediction-content {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .prediction-text {
-  padding: 12px;
+  padding: 10px 12px;
   background: #f9fafb;
   border-radius: 8px;
   border-left: 3px solid #8b7fc7;
@@ -120,13 +120,15 @@
 .prediction-text strong {
   color: #4a3f6f;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  font-size: 14px;
 }
 
 .prediction-text p {
   margin: 0;
   color: #5a5278;
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 14px;
 }
 
 .vitals-summary {
@@ -161,7 +163,7 @@
 
 .concerns-section,
 .recommendations-section {
-  padding: 12px;
+  padding: 10px 12px;
   border-radius: 8px;
 }
 
@@ -178,21 +180,21 @@
 .concerns-section strong,
 .recommendations-section strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: #374151;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .concerns-section ul,
 .recommendations-section ul {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 18px;
 }
 
 .concerns-section li,
 .recommendations-section li {
-  margin: 5px 0;
+  margin: 4px 0;
   color: #5a5278;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.4;
 }
