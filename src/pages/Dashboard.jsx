@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { FiBarChart2, FiUsers, FiTrendingUp, FiBell, FiLogOut, FiPlus, FiTrash2, FiMenu, FiX, FiActivity, FiPause, FiPlay } from 'react-icons/fi'
 import { IoMdPeople, IoMdDocument, IoMdHeart } from 'react-icons/io'
 import { MdWarning } from 'react-icons/md'
@@ -1028,7 +1028,7 @@ function Dashboard() {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={getAlertTimelineData()}>
+                <AreaChart data={getAlertTimelineData()}>
                   <defs>
                     <linearGradient id="alertGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#ff4444" stopOpacity={0.8}/>
@@ -1047,7 +1047,7 @@ function Dashboard() {
                     }} 
                   />
                   <Legend />
-                  <Line 
+                  <Area 
                     type="monotone" 
                     dataKey="alerts" 
                     stroke="#ff4444" 
@@ -1055,10 +1055,8 @@ function Dashboard() {
                     fill="url(#alertGradient)"
                     fillOpacity={1}
                     name="Alert Count"
-                    dot={{ fill: '#ff4444', strokeWidth: 2, r: 5 }}
-                    activeDot={{ r: 8 }}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
 
