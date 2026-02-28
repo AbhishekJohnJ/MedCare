@@ -39,6 +39,10 @@ function Dashboard() {
   const [patients, setPatients] = useState([])
   const [selectedPatient, setSelectedPatient] = useState('all') // 'all' or specific patient ID
   const [isPaused, setIsPaused] = useState(false) // Pause/Resume live updates
+  const [unreadAlerts, setUnreadAlerts] = useState(0) // Track unread high-risk alerts
+  const [previousHighRiskCount, setPreviousHighRiskCount] = useState(0) // Track previous count for notifications
+  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false) // Show/hide notification dropdown
+  const [recentAlerts, setRecentAlerts] = useState([]) // Store recent high-risk alerts
 
   // Fetch data from MongoDB with pagination
   const fetchVitalsData = async (page = 1, showLoader = true, append = false) => {
@@ -61,6 +65,31 @@ function Dashboard() {
         } else {
           // Replace data for pagination
           setVitalsData(result.data)
+          
+          // Track high-risk alerts for notifications
+          const highRiskAlerts = result.data.filter(d => d.predictedEvent === 'High Risk')
+          const currentHighRiskCount = highRiskAlerts.length
+          
+          // Check if there are new high-risk alerts
+          if (currentHighRiskCount > previousHighRiskCount && previousHighRiskCount > 0) {
+            const newAlertsCount = currentHighRiskCount - previousHighRiskCount
+            setUnreadAlerts(prev => prev + newAlertsCount)
+            
+            // Show browser notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+              const latestAlert = highRiskAlerts[0]
+              new Notification('⚠️ High Risk Alert', {
+                body: `Patient ${latestAlert.patientId}: HR ${latestAlert.heartRate} bpm, SpO2 ${latestAlert.spO2}%`,
+                icon: '/heartbloom_erased.png',
+                tag: 'high-risk-alert'
+              })
+            }
+          }
+          
+          setPreviousHighRiskCount(currentHighRiskCount)
+          
+          // Update recent alerts (last 10)
+          setRecentAlerts(highRiskAlerts.slice(0, 10))
         }
         setPagination(result.pagination)
         setHasMore(result.pagination.hasNextPage)
@@ -136,6 +165,11 @@ function Dashboard() {
 
   useEffect(() => {
     fetchPatients() // Fetch patient list on mount
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
   }, [])
 
   useEffect(() => {
@@ -357,9 +391,131 @@ function Dashboard() {
                 )}
               </button>
             )}
-            <div className="navbar-item notification">
+            <div 
+              className="navbar-item notification" 
+              style={{ position: 'relative', cursor: 'pointer' }}
+              onClick={() => {
+                setShowNotificationDropdown(!showNotificationDropdown)
+                setUnreadAlerts(0) // Clear unread count when opened
+              }}
+            >
               <FiBell size={20} />
-              <span className="badge">{stats.criticalAlerts}</span>
+              {stats.criticalAlerts > 0 && (
+                <span className="badge">{stats.criticalAlerts}</span>
+              )}
+              {unreadAlerts > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-5px',
+                  right: '-5px',
+                  background: '#ff4444',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  animation: 'pulse 2s infinite'
+                }}>
+                  {unreadAlerts > 9 ? '9+' : unreadAlerts}
+                </span>
+              )}
+              
+              {/* Notification Dropdown */}
+              {showNotificationDropdown && (
+                <div style={{
+                  position: 'absolute',
+                  top: '45px',
+                  right: '0',
+                  width: '350px',
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  background: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  zIndex: 1000,
+                  border: '2px solid #e8e3fa'
+                }}>
+                  <div style={{
+                    padding: '15px',
+                    borderBottom: '2px solid #e8e3fa',
+                    background: '#f9fafb',
+                    borderRadius: '12px 12px 0 0'
+                  }}>
+                    <h4 style={{ margin: 0, color: '#4a3f6f', fontSize: '16px' }}>
+                      High Risk Alerts ({stats.criticalAlerts})
+                    </h4>
+                  </div>
+                  <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                    {recentAlerts.length > 0 ? (
+                      recentAlerts.map((alert, idx) => (
+                        <div 
+                          key={alert._id || idx}
+                          style={{
+                            padding: '12px 15px',
+                            borderBottom: '1px solid #e8e3fa',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                          onClick={() => {
+                            setActiveTab('alerts')
+                            setShowNotificationDropdown(false)
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                            <MdWarning size={18} color="#ff4444" />
+                            <strong style={{ color: '#4a3f6f', fontSize: '14px' }}>
+                              Patient {alert.patientId}
+                            </strong>
+                          </div>
+                          <p style={{ margin: '5px 0', fontSize: '13px', color: '#6b7280' }}>
+                            HR: {alert.heartRate} bpm | SpO2: {alert.spO2}% | Risk: {alert.riskScore?.toFixed(2) || 'N/A'}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#9d96bb' }}>
+                            {new Date(alert.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '30px', textAlign: 'center', color: '#9d96bb' }}>
+                        <FiBell size={32} style={{ marginBottom: '10px', opacity: 0.5 }} />
+                        <p style={{ margin: 0 }}>No high-risk alerts</p>
+                      </div>
+                    )}
+                  </div>
+                  {recentAlerts.length > 0 && (
+                    <div style={{
+                      padding: '12px 15px',
+                      borderTop: '2px solid #e8e3fa',
+                      background: '#f9fafb',
+                      textAlign: 'center',
+                      borderRadius: '0 0 12px 12px'
+                    }}>
+                      <button
+                        onClick={() => {
+                          setActiveTab('alert-history')
+                          setShowNotificationDropdown(false)
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#8b7fc7',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        View All Alerts →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </nav>
