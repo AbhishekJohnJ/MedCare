@@ -650,7 +650,6 @@ function Dashboard() {
                       <th>MAP</th>
                       <th>Risk Score</th>
                       <th>Status</th>
-                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -666,11 +665,6 @@ function Dashboard() {
                           <span className={`status-badge ${record.predictedEvent === 'High Risk' ? 'warning' : 'normal'}`}>
                             {record.predictedEvent || 'Normal'}
                           </span>
-                        </td>
-                        <td>
-                          <button className="delete-row-btn" onClick={() => deleteRecord(record._id)}>
-                            <FiTrash2 size={16} />
-                          </button>
                         </td>
                       </tr>
                     ))}
