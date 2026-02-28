@@ -1057,34 +1057,6 @@ function Dashboard() {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-
-                {/* Readings Timeline */}
-                <div className="chart-card full-width" style={{ marginTop: '20px' }}>
-                  <h3>Readings Timeline</h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={(() => {
-                      const patientData = vitalsData.filter(v => v.patientId === selectedPatient);
-                      const timeline = {};
-                      patientData.forEach(record => {
-                        if (record.timestamp) {
-                          const hour = new Date(record.timestamp).getHours();
-                          timeline[hour] = (timeline[hour] || 0) + 1;
-                        }
-                      });
-                      return Object.entries(timeline).sort((a, b) => a[0] - b[0]).map(([hour, count]) => ({
-                        time: `${hour}:00`,
-                        readings: count
-                      }));
-                    })()}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
-                      <XAxis dataKey="time" stroke="#6d5fa3" />
-                      <YAxis stroke="#6d5fa3" />
-                      <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
-                      <Legend />
-                      <Line type="monotone" dataKey="readings" stroke="#8b7fc7" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
               </>
             )}
           </div>
@@ -1247,27 +1219,6 @@ function Dashboard() {
             <div className="ai-mode-header">
               <h2>AI-Powered Patient Analysis</h2>
               <p>Ask questions about patient vitals, risk predictions, and health trends</p>
-            </div>
-
-            <div className="stats-grid" style={{ marginBottom: '20px' }}>
-              <div className="stat-card">
-                <FiActivity size={32} color="#8b7fc7" />
-                <h3>AI Predictions</h3>
-                <p className="stat-value">{vitalsData.length}</p>
-                <p className="stat-label">Total Analyzed</p>
-              </div>
-              <div className="stat-card">
-                <FiTrendingUp size={32} color="#10b981" />
-                <h3>Active Patients</h3>
-                <p className="stat-value">{patients.length}</p>
-                <p className="stat-label">Being Monitored</p>
-              </div>
-              <div className="stat-card">
-                <MdWarning size={32} color="#ff4444" />
-                <h3>High Risk Detected</h3>
-                <p className="stat-value">{stats.criticalAlerts}</p>
-                <p className="stat-label">Requires Attention</p>
-              </div>
             </div>
 
             <AIChat patients={patients} vitalsData={vitalsData} />
