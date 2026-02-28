@@ -327,7 +327,7 @@ function Dashboard() {
             onClick={() => setActiveTab('alerts')}
             title="Alerts"
           >
-            <FiBell size={18} /> {sidebarOpen && 'Alerts'}
+            <MdWarning size={18} /> {sidebarOpen && 'Alerts'}
           </button>
           <button 
             className={activeTab === 'alert-history' ? 'active' : ''} 
