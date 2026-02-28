@@ -298,9 +298,9 @@ function Dashboard() {
           <button 
             className={activeTab === 'ai-mode' ? 'active' : ''} 
             onClick={() => setActiveTab('ai-mode')}
-            title="AI Mode"
+            title="AI Assistant"
           >
-            <FiActivity size={18} /> {sidebarOpen && 'AI Mode'}
+            <FiActivity size={18} /> {sidebarOpen && 'AI Assistant'}
           </button>
         </nav>
 
