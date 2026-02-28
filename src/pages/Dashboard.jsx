@@ -555,9 +555,9 @@ function Dashboard() {
               </div>
             )}
             
-            {/* Subject Filter */}
+            {/* Patient Filter */}
             <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label style={{ fontWeight: '600', color: '#5a5278' }}>Filter by Subject:</label>
+              <label style={{ fontWeight: '600', color: '#5a5278' }}>Filter by Patient:</label>
               <select 
                 value={selectedPatient}
                 onChange={(e) => {
@@ -574,7 +574,7 @@ function Dashboard() {
                   cursor: 'pointer'
                 }}
               >
-                <option value="all">All Subjects</option>
+                <option value="all">All Patients</option>
                 {patients.map(patient => (
                   <option key={patient.id} value={patient.id}>
                     {patient.label}
@@ -862,7 +862,7 @@ function Dashboard() {
                   cursor: 'pointer'
                 }}
               >
-                <option value="all">All Subjects</option>
+                <option value="all">All Patients</option>
                 {patients.map(patient => (
                   <option key={patient.id} value={patient.id}>
                     {patient.label}
