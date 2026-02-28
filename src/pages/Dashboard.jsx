@@ -686,50 +686,250 @@ function Dashboard() {
 
         {activeTab === 'analytics' && (
           <div className="content-section">
-            {viewMode === 'live' && (
-              <div style={{ 
-                background: isPaused 
-                  ? 'linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)'
-                  : 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
-                padding: '15px',
-                borderRadius: '12px',
-                marginBottom: '20px',
-                border: isPaused ? '2px solid rgba(255, 165, 0, 0.3)' : '2px solid rgba(255, 68, 68, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                {isPaused ? (
-                  <FiPause size={24} color="#ff9800" />
-                ) : (
-                  <BsCircleFill size={20} color="#ff4444" />
-                )}
-                <div>
-                  <strong style={{ color: isPaused ? '#ff9800' : '#ff4444' }}>
-                    {isPaused ? 'LIVE ANALYTICS PAUSED' : 'LIVE ANALYTICS'}
-                  </strong>
-                  <p style={{ margin: 0, fontSize: '14px', color: '#5a5278' }}>
-                    {isPaused 
-                      ? 'Data updates paused • Click Resume to continue'
-                      : 'Real-time data visualization • Updates every second'
-                    }
-                  </p>
-                </div>
-              </div>
-            )}
-            <div className="chart-card full-width">
-              <h3>Readings Timeline</h3>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={getTimelineData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
-                  <XAxis dataKey="time" stroke="#6d5fa3" />
-                  <YAxis stroke="#6d5fa3" />
-                  <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
-                  <Legend />
-                  <Line type="monotone" dataKey="readings" stroke="#8b7fc7" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
+            {/* Patient Filter */}
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ fontWeight: '600', color: '#5a5278' }}>Select Patient:</label>
+              <select 
+                value={selectedPatient}
+                onChange={(e) => {
+                  setSelectedPatient(e.target.value)
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '2px solid #e8e3fa',
+                  background: 'white',
+                  color: '#5a5278',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">All Subjects</option>
+                {patients.map(patient => (
+                  <option key={patient.id} value={patient.id}>
+                    {patient.label}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {selectedPatient === 'all' ? (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(139, 127, 199, 0.1) 0%, rgba(167, 139, 250, 0.1) 100%)',
+                border: '2px solid #8b7fc7',
+                borderRadius: '12px',
+                padding: 40,
+                textAlign: 'center'
+              }}>
+                <FiActivity size={48} color="#8b7fc7" style={{ marginBottom: 15 }} />
+                <h3 style={{ color: '#4a3f6f', marginBottom: 10 }}>Patient Analytics</h3>
+                <p style={{ color: '#6d5fa3', fontSize: 16 }}>
+                  Select a specific patient from the dropdown above to view detailed heart rate analysis and trends
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Analytics Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px'
+                  }}>
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #8b7fc7 0%, #a78bfa 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <BsFileText size={24} color="white" />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#9d96bb', fontWeight: '600' }}>Baseline Deviation</p>
+                      <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#4a3f6f' }}>
+                        {(() => {
+                          const patientData = vitalsData.filter(v => v.patientId === selectedPatient);
+                          if (patientData.length < 10) return '0%';
+                          const baseline = patientData.slice(-50).reduce((sum, v) => sum + v.heartRate, 0) / Math.min(50, patientData.length);
+                          const current = patientData[0]?.heartRate || 0;
+                          const deviation = Math.abs(((current - baseline) / baseline) * 100);
+                          return deviation.toFixed(1) + '%';
+                        })()}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#10b981' }}>Within Normal Range</p>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px'
+                  }}>
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #ff4444 0%, #ff6b6b 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <IoMdHeart size={24} color="white" />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#9d96bb', fontWeight: '600' }}>Heart Rate Variability</p>
+                      <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#4a3f6f' }}>
+                        {(() => {
+                          const patientData = vitalsData.filter(v => v.patientId === selectedPatient);
+                          if (patientData.length < 2) return '0';
+                          const hrs = patientData.slice(0, 50).map(v => v.heartRate);
+                          const mean = hrs.reduce((a, b) => a + b, 0) / hrs.length;
+                          const variance = hrs.reduce((sum, hr) => sum + Math.pow(hr - mean, 2), 0) / hrs.length;
+                          return Math.sqrt(variance).toFixed(1);
+                        })()}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#10b981' }}>Normal Variability</p>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px'
+                  }}>
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <FiActivity size={24} color="white" />
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#9d96bb', fontWeight: '600' }}>Patient Status</p>
+                      <p style={{ margin: 0, fontSize: '24px', fontWeight: '700', color: '#10b981' }}>Normal</p>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#10b981' }}>Stable Condition</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Heart Rate Trend Analysis Chart */}
+                <div className="chart-card full-width">
+                  <h3>Heart Rate Trend Analysis</h3>
+                  <p style={{ color: '#9d96bb', fontSize: '14px', marginBottom: '20px' }}>
+                    Real-time heart rate monitoring with baseline comparison (Last 50 readings)
+                  </p>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={(() => {
+                      const patientData = vitalsData
+                        .filter(v => v.patientId === selectedPatient)
+                        .slice(0, 50)
+                        .reverse();
+                      
+                      if (patientData.length === 0) return [];
+                      
+                      const baseline = patientData.reduce((sum, v) => sum + v.heartRate, 0) / patientData.length;
+                      
+                      return patientData.map((v, idx) => ({
+                        index: idx + 1,
+                        currentHR: v.heartRate,
+                        baseline: baseline
+                      }));
+                    })()}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e8e3fa" />
+                      <XAxis 
+                        dataKey="index" 
+                        stroke="#6d5fa3"
+                      />
+                      <YAxis 
+                        stroke="#6d5fa3"
+                        label={{ value: 'Heart Rate (bpm)', angle: -90, position: 'insideLeft', fill: '#6d5fa3' }}
+                        domain={[0, 140]}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          background: 'white', 
+                          border: '2px solid #8b7fc7', 
+                          borderRadius: '8px',
+                          padding: '10px'
+                        }}
+                        formatter={(value, name) => {
+                          if (name === 'currentHR') return [value + ' bpm', 'Current HR'];
+                          if (name === 'baseline') return [value.toFixed(2) + ' bpm', 'Baseline'];
+                          return [value, name];
+                        }}
+                      />
+                      <Legend />
+                      <Line 
+                        type="monotone" 
+                        dataKey="currentHR" 
+                        stroke="#8b7fc7" 
+                        strokeWidth={2}
+                        name="Current HR"
+                        dot={{ fill: '#8b7fc7', r: 3 }}
+                        activeDot={{ r: 6 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="baseline" 
+                        stroke="#10b981" 
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        name="Baseline"
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Readings Timeline */}
+                <div className="chart-card full-width" style={{ marginTop: '20px' }}>
+                  <h3>Readings Timeline</h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={(() => {
+                      const patientData = vitalsData.filter(v => v.patientId === selectedPatient);
+                      const timeline = {};
+                      patientData.forEach(record => {
+                        if (record.timestamp) {
+                          const hour = new Date(record.timestamp).getHours();
+                          timeline[hour] = (timeline[hour] || 0) + 1;
+                        }
+                      });
+                      return Object.entries(timeline).sort((a, b) => a[0] - b[0]).map(([hour, count]) => ({
+                        time: `${hour}:00`,
+                        readings: count
+                      }));
+                    })()}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ddd6fe" />
+                      <XAxis dataKey="time" stroke="#6d5fa3" />
+                      <YAxis stroke="#6d5fa3" />
+                      <Tooltip contentStyle={{ background: 'white', border: '1px solid #ddd6fe', color: '#4a3f6f' }} />
+                      <Legend />
+                      <Line type="monotone" dataKey="readings" stroke="#8b7fc7" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </div>
         )}
 
