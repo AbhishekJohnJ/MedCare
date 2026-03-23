@@ -76,14 +76,14 @@ function EcgCanvas() {
         }
 
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = `rgba(${lane.color}, ${lane.alpha * 0.3})`;
-        ctx.lineWidth = lane.width + 3;
+        ctx.strokeStyle = `rgba(${lane.color}, ${lane.alpha * 0.45})`;
+        ctx.lineWidth = lane.width + 5;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.stroke();
 
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = `rgba(${lane.color}, 0.6)`;
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = `rgba(${lane.color}, 0.9)`;
         ctx.strokeStyle = `rgba(${lane.color}, ${lane.alpha})`;
         ctx.lineWidth = lane.width;
         ctx.stroke();
@@ -93,18 +93,14 @@ function EcgCanvas() {
         const headY = cy - ecgShape(headT) * amp;
 
         ctx.beginPath();
-        ctx.arc(headX - 1.5, headY, lane.width * 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${lane.color}, ${lane.alpha * 0.9})`;
-        ctx.shadowBlur = 14;
-        ctx.shadowColor = `rgba(${lane.color}, 0.8)`;
+        ctx.arc(headX - 1.5, headY, lane.width * 3, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${lane.color}, ${lane.alpha})`;
+        ctx.shadowBlur = 22;
+        ctx.shadowColor = `rgba(${lane.color}, 1.0)`;
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        const fadeGrad = ctx.createLinearGradient(headX - TRAIL - 40, 0, headX - TRAIL + 60, 0);
-        fadeGrad.addColorStop(0, "rgba(237,233,251, 1)");
-        fadeGrad.addColorStop(1, "rgba(237,233,251, 0)");
-        ctx.fillStyle = fadeGrad;
-        ctx.fillRect(headX - TRAIL - 40, cy - amp * 2, 100, amp * 4);
+
       });
 
       rafId = requestAnimationFrame(draw);
