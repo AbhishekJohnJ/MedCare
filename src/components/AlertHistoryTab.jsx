@@ -135,10 +135,12 @@ function AlertHistoryTab() {
               </div>
 
               <div className="alert-card-body">
-                <div className="alert-prediction">
-                  <strong>Prediction:</strong>
-                  <p>{alert.prediction}</p>
-                </div>
+                {alert.prediction && (
+                  <div className="alert-prediction">
+                    <strong>Prediction:</strong>
+                    <p>{alert.prediction}</p>
+                  </div>
+                )}
 
                 <div className="alert-vitals">
                   <div className="vital-badge">
@@ -151,29 +153,21 @@ function AlertHistoryTab() {
                   </div>
                   <div className="vital-badge">
                     <span className="vital-label">MAP:</span>
-                    <span className="vital-value">{alert.vitals.meanArterialPressure || '-'} mmHg</span>
+                    <span className="vital-value">{alert.vitals.meanArterialPressure || '—'} mmHg</span>
                   </div>
                 </div>
 
                 {alert.concerns && alert.concerns.length > 0 && (
                   <div className="alert-concerns">
-                    <strong>⚠️ Concerns:</strong>
-                    <ul>
-                      {alert.concerns.map((concern, idx) => (
-                        <li key={idx}>{concern}</li>
-                      ))}
-                    </ul>
+                    <strong>⚠ Concerns:</strong>
+                    <ul>{alert.concerns.map((c, i) => <li key={i}>{c}</li>)}</ul>
                   </div>
                 )}
 
                 {alert.recommendations && alert.recommendations.length > 0 && (
                   <div className="alert-recommendations">
                     <strong>💡 Recommendations:</strong>
-                    <ul>
-                      {alert.recommendations.map((rec, idx) => (
-                        <li key={idx}>{rec}</li>
-                      ))}
-                    </ul>
+                    <ul>{alert.recommendations.map((r, i) => <li key={i}>{r}</li>)}</ul>
                   </div>
                 )}
               </div>
