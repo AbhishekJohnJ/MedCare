@@ -142,6 +142,22 @@ function HeartSvgArt() {
   );
 }
 
+// ── Eye Icon ──────────────────────────────────────────────────
+function EyeIcon({ visible }) {
+  return visible ? (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  ) : (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12S5 5 12 5s11 7 11 7-4 7-11 7S1 12 1 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 // ── Login Form ─────────────────────────────────────────────────
 function LoginForm() {
   const navigate = useNavigate();
@@ -160,34 +176,20 @@ function LoginForm() {
     if (!email || !/\S+@\S+\.\S+/.test(email)) { setEmailErr(true); ok = false; }
     if (!password) { setPwErr(true); ok = false; }
     if (!ok) return;
-    
     setLoading(true);
-    
     try {
       const response = await fetch('http://localhost:3000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        setErrorMsg(data.error || 'Login failed');
-        setLoading(false);
-        return;
-      }
-
-      // Store token and user data
+      if (!response.ok) { setErrorMsg(data.error || 'Login failed'); setLoading(false); return; }
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
       setShowSuccess(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 800);
-    } catch (error) {
-      console.error('Login error:', error);
+      setTimeout(() => navigate('/dashboard'), 800);
+    } catch {
       setErrorMsg('Unable to connect to server');
       setLoading(false);
     }
@@ -198,110 +200,76 @@ function LoginForm() {
   return (
     <div className="form-col">
       <div className="form-card">
-        <div id="loginView">
-          <div className="fh">
-            <div className="fh-avatar">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M12 21.7C5.5 17.5 2 13.5 2 9.5A5.5 5.5 0 0112 6a5.5 5.5 0 0110 3.5c0 4-3.5 8-10 12.2z" fill="white" opacity=".95" />
+        <div className="fh">
+          <div className="fh-avatar">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <path d="M12 21.7C5.5 17.5 2 13.5 2 9.5A5.5 5.5 0 0112 6a5.5 5.5 0 0110 3.5c0 4-3.5 8-10 12.2z" fill="white" opacity=".95" />
+            </svg>
+          </div>
+          <div className="fh-title">Welcome <em>back</em></div>
+          <div className="fh-sub">Sign in to your clinical workspace</div>
+        </div>
+
+        <div className="fields">
+          <div className="f-wrap">
+            <span className="f-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2z" />
+                <polyline points="22,6 12,12 2,6" />
               </svg>
-            </div>
-            <div className="fh-title">Welcome <em>back</em></div>
-            <div className="fh-sub">Sign in to your clinical workspace</div>
+            </span>
+            <input
+              className={`inp${emailErr ? " err" : ""}`}
+              type="email" placeholder="Provider email"
+              autoComplete="email" value={email}
+              onChange={e => setEmail(e.target.value)} onKeyDown={handleKey}
+            />
+            {emailErr && <div className="f-err on">Enter a valid email.</div>}
           </div>
 
-          <div className="fields">
-            {/* Email */}
-            <div className="f-wrap">
-              <span className="f-ico">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2z" />
-                  <polyline points="22,6 12,12 2,6" />
-                </svg>
-              </span>
-              <input
-                className={`inp${emailErr ? " err" : ""}`}
-                type="email"
-                placeholder="Provider email"
-                autoComplete="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={handleKey}
-              />
-              {emailErr && <div className="f-err on">Enter a valid email.</div>}
-            </div>
-
-            {/* Password */}
-            <div className="f-wrap">
-              <span className="f-ico">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" />
-                  <path d="M7 11V7a5 5 0 0110 0v4" />
-                </svg>
-              </span>
-              <input
-                className={`inp${pwErr ? " err" : ""}`}
-                type={pwVis ? "text" : "password"}
-                placeholder="Password"
-                autoComplete="current-password"
-                style={{ paddingRight: 40 }}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={handleKey}
-              />
-              <button className="eye" onClick={() => setPwVis(v => !v)} type="button">
-                {pwVis ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
-                    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </svg>
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12S5 5 12 5s11 7 11 7-4 7-11 7S1 12 1 12z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                )}
-              </button>
-              {pwErr && <div className="f-err on">Password cannot be empty.</div>}
-            </div>
+          <div className="f-wrap">
+            <span className="f-ico">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+            </span>
+            <input
+              className={`inp${pwErr ? " err" : ""}`}
+              type={pwVis ? "text" : "password"} placeholder="Password"
+              autoComplete="current-password" style={{ paddingRight: 44 }}
+              value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKey}
+            />
+            <button className="eye" onClick={() => setPwVis(v => !v)} type="button">
+              <EyeIcon visible={pwVis} />
+            </button>
+            {pwErr && <div className="f-err on">Password cannot be empty.</div>}
           </div>
+        </div>
 
-          <div className="sp-sm" />
-          <div className="row-opts">
-            <label className="chk-lbl">
-              <input type="checkbox" className="chk" /> Remember me
-            </label>
-          </div>
-          <div className="sp-md" />
+        <div className="sp-sm" />
+        <div className="row-opts">
+          <label className="chk-lbl">
+            <input type="checkbox" className="chk" /> Remember me
+          </label>
+        </div>
+        <div className="sp-md" />
 
-          <button className={`cta-btn${loading ? " loading" : ""}`} onClick={doLogin}>
-            <span className="c-txt">Sign in →</span>
-            <div className="spin" />
-          </button>
+        <button className={`cta-btn${loading ? " loading" : ""}`} onClick={doLogin}>
+          <span className="c-txt">Sign in →</span>
+          <div className="spin" />
+        </button>
 
-          {errorMsg && (
-            <div style={{ 
-              marginTop: '12px', 
-              padding: '10px', 
-              background: 'rgba(239, 68, 68, 0.1)', 
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              borderRadius: '8px',
-              color: '#dc2626',
-              fontSize: '13px',
-              textAlign: 'center'
-            }}>
-              {errorMsg}
-            </div>
-          )}
+        {errorMsg && (
+          <div className="error-banner">{errorMsg}</div>
+        )}
 
-          <div className="sp-md" />
-          <div className="f-footer">
-            Don't have an account? <a href="/signup">Sign up</a>
-          </div>
-
+        <div className="sp-md" />
+        <div className="f-footer">
+          Don't have an account? <a href="/signup">Sign up</a>
         </div>
       </div>
-      
+
       {showSuccess && (
         <div className="toast-notification">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -319,10 +287,6 @@ function LoginForm() {
 export default function HeartBlooms() {
   return (
     <>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300&family=Instrument+Serif:ital@0;1&display=swap"
-        rel="stylesheet"
-      />
       <div className="bg" />
       <div className="blob blob-1" />
       <div className="blob blob-2" />
