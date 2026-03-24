@@ -738,65 +738,62 @@ function Dashboard() {
 
         {activeTab === 'patients' && (
           <div className="content-section">
-            <div className="table-card">
-              <div className="table-header">
-                <h3>Patient Records ({pagination.totalRecords.toLocaleString()} total)</h3>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  {/* Patient Filter */}
-                  <select 
+            <div className="pt-card">
+              {/* Card Header */}
+              <div className="pt-card-header">
+                <div className="pt-card-title-group">
+                  <div className="pt-card-icon">
+                    <FiUsers size={18} />
+                  </div>
+                  <div>
+                    <h3 className="pt-card-title">Patient Records</h3>
+                    <span className="pt-card-count">{pagination.totalRecords.toLocaleString()} total records</span>
+                  </div>
+                </div>
+
+                <div className="pt-controls">
+                  <select
+                    className="pt-select"
                     value={selectedPatient}
-                    onChange={(e) => {
-                      setSelectedPatient(e.target.value)
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      border: '2px solid #e8e3fa',
-                      background: 'white',
-                      color: '#5a5278',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
+                    onChange={(e) => setSelectedPatient(e.target.value)}
                   >
                     <option value="all">All Patients</option>
                     {patients.map(patient => (
-                      <option key={patient.id} value={patient.id}>
-                        {patient.label}
-                      </option>
+                      <option key={patient.id} value={patient.id}>{patient.label}</option>
                     ))}
                   </select>
-                  
-                  {/* View Mode Buttons */}
-                  <button 
-                    className={`view-mode-btn ${viewMode === 'live' ? 'active' : ''}`}
-                    onClick={() => setViewMode('live')}
-                  >
-                     Live Monitor
-                  </button>
-                  <button 
-                    className={`view-mode-btn ${viewMode === 'infinite' ? 'active' : ''}`}
-                    onClick={() => setViewMode('infinite')}
-                  >
-                     History
-                  </button>
+
+                  <div className="pt-toggle-group">
+                    <button
+                      className={`pt-toggle-btn ${viewMode === 'live' ? 'active' : ''}`}
+                      onClick={() => setViewMode('live')}
+                    >
+                      <BsCircleFill size={7} style={{ color: viewMode === 'live' ? '#fff' : '#8b7fc7' }} />
+                      Live Monitor
+                    </button>
+                    <button
+                      className={`pt-toggle-btn ${viewMode === 'infinite' ? 'active' : ''}`}
+                      onClick={() => setViewMode('infinite')}
+                    >
+                      History
+                    </button>
+                  </div>
+
                   {viewMode === 'live' && (
-                    <span style={{ color: isPaused ? '#ff9800' : '#8b7fc7', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      {isPaused ? (
-                        <>
-                          <FiPause size={14} /> Paused
-                        </>
-                      ) : (
-                        <>
-                          <FiActivity size={14} /> Last update: {lastUpdateTime.toLocaleTimeString()}
-                        </>
-                      )}
+                    <span className={`pt-live-badge ${isPaused ? 'paused' : ''}`}>
+                      {isPaused ? <><FiPause size={12} /> Paused</> : <><FiActivity size={12} /> Last update: {lastUpdateTime.toLocaleTimeString()}</>}
                     </span>
                   )}
                 </div>
               </div>
-              <div className="table-wrapper" onScroll={handleScroll} style={{ maxHeight: viewMode === 'infinite' ? '600px' : 'auto', overflowY: viewMode === 'infinite' ? 'auto' : 'visible' }}>
-                <table className="data-table">
+
+              {/* Table */}
+              <div
+                className="pt-table-wrapper"
+                onScroll={handleScroll}
+                style={{ maxHeight: viewMode === 'infinite' ? '560px' : 'auto', overflowY: viewMode === 'infinite' ? 'auto' : 'visible' }}
+              >
+                <table className="pt-table">
                   <thead>
                     <tr>
                       <th>Patient ID</th>
@@ -809,31 +806,33 @@ function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {vitalsData.map((record) => (
-                      <tr key={record._id}>
-                        <td>{record.patientId}</td>
-                        <td>{new Date(record.timestamp).toLocaleString()}</td>
-                        <td>{record.heartRate} bpm</td>
-                        <td>{record.spO2}%</td>
-                        <td>{record.meanArterialPressure || '-'} mmHg</td>
-                        <td>{record.riskScore?.toFixed(2) || '-'}</td>
-                        <td>
-                          <span className={`status-badge ${record.predictedEvent === 'High Risk' ? 'warning' : 'normal'}`}>
-                            {record.predictedEvent || 'Normal'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {vitalsData.map((record, idx) => {
+                      const isHighRisk = record.predictedEvent === 'High Risk'
+                      return (
+                        <tr key={record._id} className={isHighRisk ? 'row-high-risk' : idx % 2 === 0 ? 'row-even' : 'row-odd'}>
+                          <td className="pt-patient-id">{record.patientId}</td>
+                          <td className="pt-muted">{new Date(record.timestamp).toLocaleString()}</td>
+                          <td className={record.heartRate > 100 ? 'pt-val-warn' : 'pt-val'}>{record.heartRate} <span className="pt-unit">bpm</span></td>
+                          <td className={record.spO2 < 90 ? 'pt-val-warn' : 'pt-val'}>{record.spO2}<span className="pt-unit">%</span></td>
+                          <td className="pt-val">{record.meanArterialPressure || '—'} <span className="pt-unit">mmHg</span></td>
+                          <td className={isHighRisk ? 'pt-risk-high' : 'pt-risk-low'}>{record.riskScore?.toFixed(2) || '—'}</td>
+                          <td>
+                            <span className={`pt-badge ${isHighRisk ? 'pt-badge-danger' : 'pt-badge-success'}`}>
+                              {isHighRisk ? 'High Risk' : 'Low Risk'}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
+
                 {viewMode === 'infinite' && loadingMore && (
-                  <div style={{ textAlign: 'center', padding: '20px', color: '#8b7fc7' }}>
-                    Loading more records...
-                  </div>
+                  <div className="pt-load-more">Loading more records…</div>
                 )}
                 {viewMode === 'infinite' && !hasMore && vitalsData.length > 0 && (
-                  <div style={{ textAlign: 'center', padding: '20px', color: '#9d96bb' }}>
-                    All records loaded ({vitalsData.length.toLocaleString()} of {pagination.totalRecords.toLocaleString()})
+                  <div className="pt-load-end">
+                    All {vitalsData.length.toLocaleString()} of {pagination.totalRecords.toLocaleString()} records loaded
                   </div>
                 )}
               </div>
