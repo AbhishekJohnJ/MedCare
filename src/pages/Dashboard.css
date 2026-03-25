@@ -1613,3 +1613,72 @@
 }
 
 .pt-load-more { color: #8b7fc7; }
+
+/* ── Patient Filter Bar ─────────────────────────────────────── */
+.patient-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  background: white;
+  border: 1.5px solid #e8e3fa;
+  border-radius: 16px;
+  padding: 10px 16px;
+  box-shadow: 0 2px 10px rgba(139, 127, 199, 0.08);
+  flex-wrap: wrap;
+}
+
+.patient-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9d96bb;
+  white-space: nowrap;
+  padding-right: 14px;
+  border-right: 1.5px solid #e8e3fa;
+}
+
+.patient-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.patient-chip {
+  padding: 6px 16px;
+  border-radius: 99px;
+  border: 1.5px solid #e8e3fa;
+  background: #faf8ff;
+  color: #6d5fa3;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.patient-chip:hover {
+  border-color: #a78bfa;
+  background: #f0ebff;
+  color: #5b4db8;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(139, 127, 199, 0.18);
+}
+
+.patient-chip--active {
+  background: linear-gradient(135deg, #8b7fc7, #7c6cd8);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124, 108, 216, 0.35);
+  transform: translateY(-1px);
+}
+
+.patient-chip--active:hover {
+  background: linear-gradient(135deg, #7c6cd8, #6d5fa3);
+  color: #fff;
+}

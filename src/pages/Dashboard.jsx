@@ -571,31 +571,29 @@ function Dashboard() {
             )}
             
             {/* Patient Filter */}
-            <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label style={{ fontWeight: '600', color: '#5a5278' }}>Filter by Patient:</label>
-              <select 
-                value={selectedPatient}
-                onChange={(e) => {
-                  setSelectedPatient(e.target.value)
-                }}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '2px solid #e8e3fa',
-                  background: 'white',
-                  color: '#5a5278',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="all">All Patients</option>
+            {/* Patient Filter */}
+            <div className="patient-filter-bar">
+              <span className="patient-filter-label">
+                <FiUsers size={15} />
+                Patient
+              </span>
+              <div className="patient-filter-chips">
+                <button
+                  className={`patient-chip ${selectedPatient === 'all' ? 'patient-chip--active' : ''}`}
+                  onClick={() => setSelectedPatient('all')}
+                >
+                  All
+                </button>
                 {patients.map(patient => (
-                  <option key={patient.id} value={patient.id}>
+                  <button
+                    key={patient.id}
+                    className={`patient-chip ${selectedPatient === patient.id ? 'patient-chip--active' : ''}`}
+                    onClick={() => setSelectedPatient(patient.id)}
+                  >
                     {patient.label}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
             
             {/* Stats Cards */}
