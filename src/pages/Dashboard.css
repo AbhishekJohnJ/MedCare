@@ -1682,3 +1682,51 @@
   background: linear-gradient(135deg, #7c6cd8, #6d5fa3);
   color: #fff;
 }
+
+/* ── Live Monitoring Banner ─────────────────────────────────── */
+.live-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  border: 1.5px solid;
+}
+
+.live-banner--active {
+  background: linear-gradient(135deg, rgba(139, 127, 199, 0.1) 0%, rgba(196, 181, 253, 0.12) 100%);
+  border-color: rgba(139, 127, 199, 0.35);
+}
+
+.live-banner--paused {
+  background: linear-gradient(135deg, rgba(139, 127, 199, 0.06) 0%, rgba(196, 181, 253, 0.08) 100%);
+  border-color: rgba(139, 127, 199, 0.2);
+}
+
+.live-banner__dot {
+  color: #8b7fc7;
+  flex-shrink: 0;
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+.live-banner__icon {
+  color: #9d96bb;
+  flex-shrink: 0;
+}
+
+.live-banner__title {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #6d5fa3;
+  margin-bottom: 2px;
+}
+
+.live-banner__sub {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #9d96bb;
+  font-weight: 500;
+}

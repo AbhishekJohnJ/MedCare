@@ -539,29 +539,18 @@ function Dashboard() {
         {activeTab === 'overview' && (
           <div className="content-section">
             {viewMode === 'live' && (
-              <div style={{ 
-                background: isPaused 
-                  ? 'linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)'
-                  : 'linear-gradient(135deg, rgba(255, 68, 68, 0.1) 0%, rgba(139, 127, 199, 0.1) 100%)',
-                padding: '15px',
-                borderRadius: '12px',
-                marginBottom: '20px',
-                border: isPaused ? '2px solid rgba(255, 165, 0, 0.3)' : '2px solid rgba(255, 68, 68, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
+              <div className={`live-banner ${isPaused ? 'live-banner--paused' : 'live-banner--active'}`}>
                 {isPaused ? (
-                  <FiPause size={24} color="#ff9800" />
+                  <FiPause size={20} className="live-banner__icon" />
                 ) : (
-                  <BsCircleFill size={20} color="#ff4444" />
+                  <BsCircleFill size={10} className="live-banner__dot" />
                 )}
                 <div>
-                  <strong style={{ color: isPaused ? '#ff9800' : '#ff4444' }}>
+                  <strong className="live-banner__title">
                     {isPaused ? 'LIVE MONITORING PAUSED' : 'LIVE MONITORING MODE'}
                   </strong>
-                  <p style={{ margin: 0, fontSize: '14px', color: '#5a5278' }}>
-                    {isPaused 
+                  <p className="live-banner__sub">
+                    {isPaused
                       ? 'Data updates paused • Click Resume to continue monitoring'
                       : 'Showing latest readings • Updates every second • Switch to History to view all records'
                     }
