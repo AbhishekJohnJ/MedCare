@@ -284,9 +284,9 @@ function Dashboard() {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-          <FiMenu size={20} />
+          <FiMenu size={18} />
         </button>
-        
+
         <div className="sidebar-header">
           <div className="logo">
             <img src="/heartbloom_erased.png" alt="MediCare Logo" />
@@ -299,54 +299,69 @@ function Dashboard() {
           )}
         </div>
 
-        
         <nav className="sidebar-nav">
-          <button 
-            className={activeTab === 'overview' ? 'active' : ''} 
+          {sidebarOpen && <span className="sidebar-section-label">Main</span>}
+          <button
+            className={activeTab === 'overview' ? 'active' : ''}
             onClick={() => setActiveTab('overview')}
             title="Overview"
           >
-            <FiBarChart2 size={18} /> {sidebarOpen && 'Overview'}
+            <span className="nav-icon"><FiBarChart2 size={18} /></span>
+            <span className="nav-label">Overview</span>
           </button>
-          <button 
-            className={activeTab === 'patients' ? 'active' : ''} 
+          <button
+            className={activeTab === 'patients' ? 'active' : ''}
             onClick={() => setActiveTab('patients')}
             title="Patients"
           >
-            <FiUsers size={18} /> {sidebarOpen && 'Patients'}
+            <span className="nav-icon"><FiUsers size={18} /></span>
+            <span className="nav-label">Patients</span>
           </button>
-          <button 
-            className={activeTab === 'analytics' ? 'active' : ''} 
+          <button
+            className={activeTab === 'analytics' ? 'active' : ''}
             onClick={() => setActiveTab('analytics')}
             title="Analytics"
           >
-            <FiTrendingUp size={18} /> {sidebarOpen && 'Analytics'}
+            <span className="nav-icon"><FiTrendingUp size={18} /></span>
+            <span className="nav-label">Analytics</span>
           </button>
-          <button 
-            className={activeTab === 'alerts' ? 'active' : ''} 
+
+          <div className="sidebar-divider" />
+          {sidebarOpen && <span className="sidebar-section-label">Monitoring</span>}
+
+          <button
+            className={activeTab === 'alerts' ? 'active' : ''}
             onClick={() => setActiveTab('alerts')}
             title="Alerts"
           >
-            <MdWarning size={18} /> {sidebarOpen && 'Alerts'}
+            <span className="nav-icon"><MdWarning size={18} /></span>
+            <span className="nav-label">Alerts</span>
           </button>
-          <button 
-            className={activeTab === 'alert-history' ? 'active' : ''} 
+          <button
+            className={activeTab === 'alert-history' ? 'active' : ''}
             onClick={() => setActiveTab('alert-history')}
             title="Alert History"
           >
-            <FiBell size={18} /> {sidebarOpen && 'Alert History'}
+            <span className="nav-icon"><FiBell size={18} /></span>
+            <span className="nav-label">Alert History</span>
           </button>
-          <button 
-            className={activeTab === 'ai-mode' ? 'active' : ''} 
+
+          <div className="sidebar-divider" />
+          {sidebarOpen && <span className="sidebar-section-label">Intelligence</span>}
+
+          <button
+            className={activeTab === 'ai-mode' ? 'active' : ''}
             onClick={() => setActiveTab('ai-mode')}
             title="AI Assistant"
           >
-            <FiActivity size={18} /> {sidebarOpen && 'AI Assistant'}
+            <span className="nav-icon"><FiActivity size={18} /></span>
+            <span className="nav-label">AI Assistant</span>
           </button>
         </nav>
 
         <button className="logout-btn" onClick={handleLogout} title="Logout">
-          <FiLogOut size={18} /> {sidebarOpen && 'Logout'}
+          <span className="nav-icon"><FiLogOut size={18} /></span>
+          <span className="nav-label">Logout</span>
         </button>
       </aside>
 
@@ -585,25 +600,67 @@ function Dashboard() {
             
             {/* Stats Cards */}
             <div className="stats-grid">
-              <div className="stat-card">
-                <div className="stat-icon"><IoMdPeople size={40} color="#8b7fc7" /></div>
-                <div className="stat-info">
-                  <p className="stat-label">Total Patients</p>
-                  <p className="stat-value">{stats.totalPatients}</p>
+              {/* Total Patients Card */}
+              <div className="stat-card stat-card--patients">
+                <div className="stat-card__header">
+                  <div className="stat-card__icon-wrap stat-card__icon-wrap--purple">
+                    <IoMdPeople size={22} color="#fff" />
+                  </div>
+                  <span className="stat-card__trend stat-card__trend--up">
+                    <FiTrendingUp size={13} /> Active
+                  </span>
+                </div>
+                <div className="stat-card__body">
+                  <p className="stat-card__label">Total Patients</p>
+                  <p className="stat-card__value">{stats.totalPatients}</p>
+                  <p className="stat-card__sub">Monitored in real-time</p>
+                </div>
+                <div className="stat-card__bar">
+                  <div className="stat-card__bar-fill stat-card__bar-fill--purple" style={{ width: '72%' }} />
                 </div>
               </div>
-              <div className="stat-card">
-                <div className="stat-icon"><IoMdDocument size={40} color="#8b7fc7" /></div>
-                <div className="stat-info">
-                  <p className="stat-label">Total Records</p>
-                  <p className="stat-value">{stats.totalRecords.toLocaleString()}</p>
+
+              {/* Total Records Card */}
+              <div className="stat-card stat-card--records">
+                <div className="stat-card__header">
+                  <div className="stat-card__icon-wrap stat-card__icon-wrap--indigo">
+                    <IoMdDocument size={22} color="#fff" />
+                  </div>
+                  <span className="stat-card__trend stat-card__trend--up">
+                    <FiTrendingUp size={13} /> Growing
+                  </span>
+                </div>
+                <div className="stat-card__body">
+                  <p className="stat-card__label">Total Records</p>
+                  <p className="stat-card__value">{stats.totalRecords.toLocaleString()}</p>
+                  <p className="stat-card__sub">Vitals data points</p>
+                </div>
+                <div className="stat-card__bar">
+                  <div className="stat-card__bar-fill stat-card__bar-fill--indigo" style={{ width: '88%' }} />
                 </div>
               </div>
-              <div className="stat-card">
-                <div className="stat-icon"><IoMdHeart size={40} color="#8b7fc7" /></div>
-                <div className="stat-info">
-                  <p className="stat-label">Avg Heart Rate</p>
-                  <p className="stat-value">{stats.avgHeartRate} bpm</p>
+
+              {/* Avg Heart Rate Card */}
+              <div className="stat-card stat-card--heart">
+                <div className="stat-card__header">
+                  <div className="stat-card__icon-wrap stat-card__icon-wrap--rose">
+                    <IoMdHeart size={22} color="#fff" />
+                  </div>
+                  <span className={`stat-card__trend ${parseFloat(stats.avgHeartRate) > 100 ? 'stat-card__trend--warn' : 'stat-card__trend--ok'}`}>
+                    {parseFloat(stats.avgHeartRate) > 100 ? <MdWarning size={13} /> : <FiActivity size={13} />}
+                    {parseFloat(stats.avgHeartRate) > 100 ? 'Elevated' : 'Normal'}
+                  </span>
+                </div>
+                <div className="stat-card__body">
+                  <p className="stat-card__label">Avg Heart Rate</p>
+                  <p className="stat-card__value">{stats.avgHeartRate} <span className="stat-card__unit">bpm</span></p>
+                  <p className="stat-card__sub">Normal range: 60–100 bpm</p>
+                </div>
+                <div className="stat-card__bar">
+                  <div
+                    className={`stat-card__bar-fill ${parseFloat(stats.avgHeartRate) > 100 ? 'stat-card__bar-fill--rose' : 'stat-card__bar-fill--green'}`}
+                    style={{ width: `${Math.min((parseFloat(stats.avgHeartRate) / 150) * 100, 100)}%` }}
+                  />
                 </div>
               </div>
             </div>
